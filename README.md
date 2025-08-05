@@ -159,7 +159,26 @@ uv run kubestellar execute namespace_utils -P all_namespaces=true
 
 ### KubeStellar CLI
 
-The CLI provides several commands for interacting with functions:
+The CLI provides multiple interfaces for interacting with KubeStellar functions:
+
+#### Main Commands
+
+```bash
+# List all available functions
+uv run kubestellar list-functions
+
+# Execute a function with parameters
+uv run kubestellar execute <function_name> [parameters]
+
+# Get detailed function description and schema
+uv run kubestellar describe <function_name>
+
+# Start interactive agent mode (NEW)
+uv run kubestellar agent
+
+# Show CLI help
+uv run kubestellar --help
+```
 
 #### List Functions
 
@@ -171,65 +190,180 @@ Output:
 ```
 Available functions:
 
+- kubestellar_management
+  Description: Advanced KubeStellar multi-cluster resource management with deep search capabilities, binding policy integration, work status tracking, and comprehensive cluster topology analysis
+  
 - get_kubeconfig
   Description: Get details from kubeconfig file including contexts, clusters, and users
-  Parameters:
-    - kubeconfig_path: string (optional)
-      Path to kubeconfig file (defaults to ~/.kube/config or $KUBECONFIG)
-    - context: string (optional)
-      Specific context to get details for
-    - detail_level: string (optional)
-      Level of detail to return
+  
+- namespace_utils  
+  Description: List and count pods, services, deployments and other resources across namespaces and clusters
+  
+- gvrc_discovery
+  Description: Discover and inventory all available Kubernetes API resources across clusters
+  
+- multicluster_create
+  Description: Create Kubernetes resources across multiple clusters with advanced namespace targeting
+  
+- multicluster_logs
+  Description: Aggregate and stream logs from containers across multiple clusters and namespaces
+  
+- deploy_to
+  Description: Deploy resources to specific clusters with advanced targeting and customization options
 ```
 
 #### Execute Functions
 
+**Basic execution:**
 ```bash
-# Basic execution
 uv run kubestellar execute <function_name>
+```
 
-# With parameters using --param
+**With parameters (multiple syntax options):**
+```bash
+# Using --param flag
 uv run kubestellar execute get_kubeconfig --param context=production --param detail_level=full
 
-# With JSON parameters
+# Using -P shorthand (recommended)
+uv run kubestellar execute get_kubeconfig -P context=staging -P detail_level=contexts
+
+# Using JSON parameters
 uv run kubestellar execute get_kubeconfig --params '{"context": "production", "detail_level": "full"}'
 
-# With -P parameters (shorter syntax)
-uv run kubestellar execute get_kubeconfig -P context=staging -P detail_level=contexts
+# Complex array parameters
+uv run kubestellar execute namespace_utils -P target_namespaces='["prod","staging"]' -P all_namespaces=true
 ```
 
 #### Describe Functions
 
 ```bash
-uv run kubestellar describe get_kubeconfig
+uv run kubestellar describe <function_name>
 ```
 
-Output:
+Example output:
 ```
-Function: get_kubeconfig
-Description: Get details from kubeconfig file including contexts, clusters, and users
+Function: kubestellar_management
+Description: Advanced KubeStellar multi-cluster resource management with deep search capabilities, binding policy integration, work status tracking, and comprehensive cluster topology analysis
 
 Schema:
 {
-  "type": "object",
+  "type": "object", 
   "properties": {
-    "kubeconfig_path": {
+    "operation": {
       "type": "string",
-      "description": "Path to kubeconfig file (defaults to ~/.kube/config or $KUBECONFIG)"
+      "enum": ["deep_search", "policy_analysis", "resource_inventory", "topology_map"],
+      "default": "deep_search"
     },
-    "context": {
-      "type": "string",
-      "description": "Specific context to get details for"
+    "binding_policies": {
+      "type": "boolean", 
+      "description": "Include binding policy analysis",
+      "default": true
     },
-    "detail_level": {
-      "type": "string",
-      "enum": ["summary", "full", "contexts"],
-      "description": "Level of detail to return",
-      "default": "summary"
+    "deep_analysis": {
+      "type": "boolean",
+      "description": "Perform deep dependency and relationship analysis", 
+      "default": true
     }
-  },
-  "required": []
+  }
 }
+```
+
+### Interactive Agent Mode (NEW)
+
+The KubeStellar Agent provides an interactive AI-powered interface for natural language cluster management:
+
+#### Starting the Agent
+
+```bash
+uv run kubestellar agent
+```
+
+This starts an interactive session with:
+- **Natural language processing** for Kubernetes operations
+- **Multi-cluster topology awareness**
+- **KubeStellar 2024 architecture support**
+- **Real-time resource analysis**
+- **Binding policy integration**
+
+#### Agent Interface
+
+```
+╭─────────────────────────────────────────────────────────────────────────────────────────────╮
+│  ██╗  ██╗██╗   ██╗██████╗ ███████╗███████╗████████╗███████╗██╗     ██╗      █████╗ ██████╗  │
+│  ██║ ██╔╝██║   ██║██╔══██╗██╔════╝██╔════╝╚══██╔══╝██╔════╝██║     ██║     ██╔══██╗██╔══██╗ │
+│  █████╔╝ ██║   ██║██████╔╝█████╗  ███████╗   ██║   █████╗  ██║     ██║     ███████║██████╔╝ │
+│  ██╔═██╗ ██║   ██║██╔══██╗██╔══╝  ╚════██║   ██║   ██╔══╝  ██║     ██║     ██╔══██║██╔══██╗ │
+│  ██║  ██╗╚██████╔╝██████╔╝███████╗███████║   ██║   ███████╗███████╗███████╗██║  ██║██║  ██║ │
+│  ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ │
+│                       Multi-Cluster Kubernetes Management Agent                             │
+╰─────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Provider: openai
+Model: gpt-4o
+
+Type 'help' for available commands
+Type 'exit' or Ctrl+D to quit
+
+[openai] ▶ 
+```
+
+#### Agent Commands
+
+**Natural language queries:**
+```bash
+# Resource analysis
+[openai] ▶ how many pods are running?
+[openai] ▶ show me kubestellar topology
+[openai] ▶ perform deep kubestellar search with binding policies
+[openai] ▶ analyze resource placement across clusters
+
+# KubeStellar-specific operations  
+[openai] ▶ show me all WDS and ITS spaces
+[openai] ▶ check binding policy status
+[openai] ▶ list workstatuses across clusters
+[openai] ▶ analyze manifest works distribution
+
+# Troubleshooting
+[openai] ▶ check cluster connectivity
+[openai] ▶ find failed deployments
+[openai] ▶ show resource distribution issues
+```
+
+**Built-in commands:**
+```bash
+help          # Show available commands
+clear         # Clear conversation history  
+provider <name>  # Switch AI provider
+exit          # Exit the agent
+```
+
+#### Agent Configuration
+
+Configure AI providers in `~/.kube/a2a-config.yaml`:
+
+```yaml
+providers:
+  openai:
+    api_key: "your-openai-key"
+    model: "gpt-4o"
+    temperature: 0.7
+  
+  claude:
+    api_key: "your-claude-key" 
+    model: "claude-3-haiku"
+    
+default_provider: "openai"
+
+ui:
+  show_thinking: true
+  show_token_usage: true
+```
+
+Or set environment variables:
+```bash
+export OPENAI_API_KEY="your-key"
+export CLAUDE_API_KEY="your-key"  
+export A2A_DEFAULT_PROVIDER="openai"
 ```
 
 ### MCP Server
@@ -270,7 +404,60 @@ Claude: "Let me get the details for your production context."
 
 ## Available Functions
 
-The KubeStellar Agent provides comprehensive multi-cluster management functions with advanced namespace and resource discovery capabilities.
+The KubeStellar Agent provides comprehensive multi-cluster management functions with advanced namespace and resource discovery capabilities, enhanced with KubeStellar 2024 architecture support.
+
+### KubeStellar Management Functions
+
+#### kubestellar_management (NEW)
+
+Advanced KubeStellar multi-cluster resource management with deep search capabilities, binding policy integration, work status tracking, and comprehensive cluster topology analysis.
+
+**Key Features:**
+- **KubeStellar 2024 Architecture**: Full support for WDS, ITS, WEC spaces
+- **Binding Policy Analysis**: Analyze BindingPolicies, WorkStatuses, ManifestWorks
+- **Deep Search**: Multi-cluster resource discovery with relationship mapping
+- **Topology Mapping**: Visual representation of KubeStellar control plane
+- **OCM Integration**: Support for Open Cluster Management components
+
+**Parameters:**
+- `operation` (string): Operation type (`deep_search`, `policy_analysis`, `resource_inventory`, `topology_map`)
+- `binding_policies` (boolean): Include binding policy analysis (default: true)
+- `work_statuses` (boolean): Include work status tracking (default: true)
+- `placement_analysis` (boolean): Analyze resource placement strategies (default: true)
+- `deep_analysis` (boolean): Perform deep dependency analysis (default: true)
+- `include_wds` (boolean): Include WDS clusters in analysis (default: false)
+
+**Examples:**
+
+```bash
+# KubeStellar topology overview
+uv run kubestellar execute kubestellar_management -P operation=topology_map
+
+# Deep search with binding policies
+uv run kubestellar execute kubestellar_management -P operation=deep_search -P binding_policies=true
+
+# Analyze binding policies across clusters
+uv run kubestellar execute kubestellar_management -P operation=policy_analysis
+
+# Resource inventory with placement analysis
+uv run kubestellar execute kubestellar_management -P operation=resource_inventory -P placement_analysis=true
+
+# Include WDS spaces in analysis
+uv run kubestellar execute kubestellar_management -P include_wds=true -P deep_analysis=true
+```
+
+**Agent Mode Examples:**
+```bash
+# Start agent mode
+uv run kubestellar agent
+
+# Natural language KubeStellar queries
+[openai] ▶ show me kubestellar topology
+[openai] ▶ perform deep kubestellar search with binding policies  
+[openai] ▶ analyze workstatus distribution across clusters
+[openai] ▶ check manifest work synchronization
+[openai] ▶ show me WDS and ITS spaces
+```
 
 ### Core Functions
 

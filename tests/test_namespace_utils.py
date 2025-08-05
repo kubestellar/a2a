@@ -335,7 +335,9 @@ class TestNamespaceUtilsFunction:
 
             # The operation should fail when no clusters succeed
             assert result["status"] == "error" or result["clusters_succeeded"] == 0
-            assert result["clusters_failed"] == 2  # Both clusters should fail with unsupported operation
+            assert (
+                result["clusters_failed"] == 2
+            )  # Both clusters should fail with unsupported operation
 
     @pytest.mark.asyncio
     async def test_execute_namespace_operation_error(

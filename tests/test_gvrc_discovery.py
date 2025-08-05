@@ -29,7 +29,7 @@ class TestGVRCDiscoveryFunction:
         """Test function initialization."""
         assert gvrc_function.name == "gvrc_discovery"
         assert "resources" in gvrc_function.description.lower()
-        assert "categories" in gvrc_function.description.lower()
+        assert "gvrc" in gvrc_function.description.lower()
 
     def test_get_schema(self, gvrc_function):
         """Test schema definition."""

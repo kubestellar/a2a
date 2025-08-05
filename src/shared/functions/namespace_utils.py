@@ -27,7 +27,7 @@ class NamespaceUtilsFunction(BaseFunction):
     def __init__(self):
         super().__init__(
             name="namespace_utils",
-            description="Manage namespaces and namespace-scoped resources across multiple clusters",
+            description="List and count pods, services, deployments and other resources across namespaces and clusters. Use operation='list' to get pod counts and resource information.",
         )
 
     async def execute(

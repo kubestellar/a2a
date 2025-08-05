@@ -6,8 +6,11 @@ from typing import Any, Dict, Optional
 
 import click
 
+from ..llm_providers.config import get_config_manager
+from ..llm_providers.registry import list_providers
 from ..shared.base_functions import async_to_sync, function_registry
 from ..shared.functions import initialize_functions
+from .agent import AgentChat
 
 
 @click.group()
@@ -104,6 +107,91 @@ def describe(function_name: str):
     click.echo(f"Description: {function.description}")
     click.echo("\nSchema:")
     click.echo(json.dumps(function.get_schema(), indent=2))
+
+
+@cli.command()
+@click.option("--provider", "-p", help="LLM provider to use (default: from config)")
+def agent(provider: Optional[str]):
+    """Start interactive agent mode with LLM assistance."""
+    try:
+        chat = AgentChat(provider_name=provider)
+        asyncio.run(chat.run())
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+
+
+@cli.group()
+def config():
+    """Manage configuration and API keys."""
+    pass
+
+
+@config.command("set-key")
+@click.argument("provider")
+@click.argument("api_key")
+def set_api_key(provider: str, api_key: str):
+    """Set API key for a provider."""
+    config_manager = get_config_manager()
+    config_manager.set_api_key(provider, api_key)
+
+
+@config.command("remove-key")
+@click.argument("provider")
+def remove_api_key(provider: str):
+    """Remove API key for a provider."""
+    config_manager = get_config_manager()
+    config_manager.remove_api_key(provider)
+
+
+@config.command("list-keys")
+def list_api_keys():
+    """List providers with stored API keys."""
+    config_manager = get_config_manager()
+    keys = config_manager.list_api_keys()
+
+    if not keys:
+        click.echo("No API keys configured.")
+        return
+
+    click.echo("Configured API keys:")
+    for provider, has_key in keys.items():
+        status = "✓" if has_key else "✗"
+        click.echo(f"  {status} {provider}")
+
+
+@config.command("set-default")
+@click.argument("provider")
+def set_default_provider(provider: str):
+    """Set default LLM provider."""
+    available = list_providers()
+    if provider not in available:
+        click.echo(f"Error: Unknown provider '{provider}'", err=True)
+        click.echo(f"Available providers: {', '.join(available)}", err=True)
+        return
+
+    config_manager = get_config_manager()
+    config_manager.set_default_provider(provider)
+
+
+@config.command("show")
+def show_config():
+    """Show current configuration."""
+    config_manager = get_config_manager()
+    config = config_manager.load_config()
+
+    click.echo("Current configuration:")
+    click.echo(json.dumps(config, indent=2))
+
+
+@cli.command("providers")
+def list_providers_cmd():
+    """List available LLM providers."""
+    providers = list_providers()
+    click.echo("Available LLM providers:")
+    for provider in providers:
+        click.echo(f"  - {provider}")
 
 
 def main():

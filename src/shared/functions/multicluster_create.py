@@ -12,7 +12,7 @@ class MultiClusterCreateFunction(BaseFunction):
     def __init__(self):
         super().__init__(
             name="multicluster_create",
-            description="Create Kubernetes resources across multiple clusters in a KubeStellar environment",
+            description="Create and deploy Kubernetes workloads (deployments, services, configmaps) across all clusters simultaneously. Use this for global resource creation that should appear on every cluster in your KubeStellar fleet. For targeted deployment to specific clusters, use deploy_to instead.",
         )
 
     async def execute(

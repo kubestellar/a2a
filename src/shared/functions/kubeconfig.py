@@ -15,7 +15,7 @@ class KubeconfigFunction(BaseFunction):
     def __init__(self):
         super().__init__(
             name="get_kubeconfig",
-            description="Get details from kubeconfig file including contexts, clusters, and users",
+            description="Get comprehensive details from kubeconfig file including available contexts, clusters, and users. Use this to understand your Kubernetes setup and available clusters for multi-cluster operations.",
         )
 
     async def execute(

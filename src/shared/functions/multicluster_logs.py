@@ -12,7 +12,7 @@ class MultiClusterLogsFunction(BaseFunction):
     def __init__(self):
         super().__init__(
             name="multicluster_logs",
-            description="Aggregate and display logs from containers across multiple clusters in a KubeStellar environment",
+            description="Retrieve and aggregate container logs from pods across multiple clusters. Use this to troubleshoot applications, monitor workloads, or gather logs from distributed services. Can target specific pods by name, label selectors, or resource types (deployment/nginx). Essential for multi-cluster debugging and observability.",
         )
 
     async def execute(

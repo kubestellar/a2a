@@ -35,7 +35,7 @@ class GVRCDiscoveryFunction(BaseFunction):
     def __init__(self):
         super().__init__(
             name="gvrc_discovery",
-            description="Discover available Kubernetes resources, their versions, and categories across multiple clusters",
+            description="Discover and inventory all available Kubernetes API resources (pods, services, CRDs, etc.) across clusters. Shows Group/Version/Resource/Category (GVRC) information, API versions, and resource capabilities. Use this to understand what resources are available in your clusters, find custom resources, or check API compatibility across your fleet.",
         )
 
     async def execute(

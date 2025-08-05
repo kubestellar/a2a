@@ -40,3 +40,6 @@ Thumbs.db
 
 # uv
 .uv/
+
+# Local configuration
+.config/

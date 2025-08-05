@@ -12,7 +12,7 @@ class DeployToFunction(BaseFunction):
     def __init__(self):
         super().__init__(
             name="deploy_to",
-            description="Deploy resources to specific clusters instead of all clusters in a KubeStellar environment",
+            description="Deploy resources to specific named clusters or clusters matching labels (selective deployment). Perfect for edge deployments, staging environments, or when you need workloads only on certain clusters. Use list_clusters=True to see available clusters first. Alternative to multicluster_create for targeted placement.",
         )
 
     async def execute(
