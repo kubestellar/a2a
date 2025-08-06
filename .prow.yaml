@@ -1,0 +1,84 @@
+presubmits:
+  - name: pull-kubestellar-a2a-verify
+    always_run: true
+    decorate: true
+    clone_uri: 'https://github.com/kubestellar/a2a'
+    spec:
+      containers:
+        - image: python:3.11
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # Install uv package manager
+              curl -LsSf https://astral.sh/uv/install.sh | sh
+              export PATH="/root/.cargo/bin:$PATH"
+              
+              # Install dependencies
+              uv sync --dev
+              
+              # Run tests with pytest and coverage
+              uv run pytest tests/ -v --cov=src/ --cov-report=xml --cov-report=term
+          resources:
+            requests:
+              memory: 2Gi
+              cpu: 1
+
+  - name: pull-kubestellar-a2a-verify-py312
+    always_run: true
+    decorate: true
+    clone_uri: 'https://github.com/kubestellar/a2a'
+    spec:
+      containers:
+        - image: python:3.12
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # Install uv package manager
+              curl -LsSf https://astral.sh/uv/install.sh | sh
+              export PATH="/root/.cargo/bin:$PATH"
+              
+              # Install dependencies
+              uv sync --dev
+              
+              # Run tests with pytest and coverage
+              uv run pytest tests/ -v --cov=src/ --cov-report=xml --cov-report=term
+          resources:
+            requests:
+              memory: 2Gi
+              cpu: 1
+
+  - name: pull-kubestellar-a2a-lint
+    always_run: true
+    decorate: true
+    clone_uri: 'https://github.com/kubestellar/a2a'
+    spec:
+      containers:
+        - image: python:3.11
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # Install uv package manager
+              curl -LsSf https://astral.sh/uv/install.sh | sh
+              export PATH="/root/.cargo/bin:$PATH"
+              
+              # Install dependencies
+              uv sync --dev
+              
+              # Lint with ruff
+              echo "Running ruff..."
+              uv run ruff check src/ tests/ --fix
+              
+              # Check formatting with black
+              echo "Checking formatting with black..."
+              uv run black src/ tests/ --check --diff
+              
+              # Type check with mypy (non-blocking)
+              echo "Type checking with mypy..."
+              uv run mypy src/ --ignore-missing-imports || echo "Type checking issues found (non-blocking)"
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 500m
