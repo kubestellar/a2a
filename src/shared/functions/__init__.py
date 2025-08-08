@@ -7,6 +7,7 @@ from .gvrc_discovery import GVRCDiscoveryFunction
 from .helm_deploy import HelmDeployFunction
 from .kubeconfig import KubeconfigFunction
 from .kubestellar_management import KubeStellarManagementFunction
+from .kubestellar_context import ExportKubeStellarContextFunction
 from .multicluster_create import MultiClusterCreateFunction
 from .multicluster_logs import MultiClusterLogsFunction
 from .namespace_utils import NamespaceUtilsFunction
@@ -19,6 +20,7 @@ def initialize_functions():
 
     # Register enhanced KubeStellar management function
     function_registry.register(KubeStellarManagementFunction())
+    function_registry.register(ExportKubeStellarContextFunction())
 
     # Register KubeStellar multi-cluster functions
     function_registry.register(MultiClusterCreateFunction())
