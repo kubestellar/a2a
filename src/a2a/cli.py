@@ -11,6 +11,7 @@ from ..llm_providers.registry import list_providers
 from ..shared.base_functions import async_to_sync, function_registry
 from ..shared.functions import initialize_functions
 from .agent import AgentChat
+from .security import AuthManager
 
 
 @click.group()
@@ -173,6 +174,49 @@ def set_default_provider(provider: str):
 
     config_manager = get_config_manager()
     config_manager.set_default_provider(provider)
+
+
+@config.group("a2a")
+def config_a2a():
+    """Manage A2A authentication and roles."""
+    pass
+
+
+@config_a2a.command("set-secret")
+@click.argument("secret")
+def a2a_set_secret(secret: str):
+    """Set the A2A HMAC secret (persisted securely)."""
+    config_manager = get_config_manager()
+    config_manager.set_a2a_secret(secret)
+
+
+@config_a2a.command("roles")
+def a2a_list_roles():
+    """List persisted agent roles."""
+    config_manager = get_config_manager()
+    roles = config_manager.list_agent_roles()
+    if not roles:
+        click.echo("No roles configured.")
+        return
+    for agent_id, role in roles.items():
+        click.echo(f"{agent_id}: {role}")
+
+
+@config_a2a.command("set-role")
+@click.argument("agent_id")
+@click.argument("role")
+def a2a_set_role(agent_id: str, role: str):
+    """Assign a role to an agent id."""
+    config_manager = get_config_manager()
+    config_manager.set_agent_role(agent_id, role)
+
+
+@config_a2a.command("remove-role")
+@click.argument("agent_id")
+def a2a_remove_role(agent_id: str):
+    """Remove a role assignment for an agent id."""
+    config_manager = get_config_manager()
+    config_manager.remove_agent_role(agent_id)
 
 
 @config.command("show")
