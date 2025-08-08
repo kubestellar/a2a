@@ -117,6 +117,61 @@ class ConfigManager:
         self.save_config(config)
         print(f"✓ Default provider set to: {provider}")
 
+    # --- A2A secret and role management ---
+
+    def get_a2a_secret(self) -> Optional[str]:
+        """Get the A2A HMAC secret.
+
+        Preference order:
+        1) Environment variable A2A_SECRET (if explicitly set)
+        2) Stored in keys file under key 'a2a_secret'
+        """
+        if "A2A_SECRET" in os.environ:
+            return os.environ["A2A_SECRET"]
+
+        keys = self._load_api_keys()
+        return keys.get("a2a_secret")
+
+    def set_a2a_secret(self, secret: str) -> None:
+        """Persist the A2A HMAC secret using the same secure store as API keys."""
+        keys = self._load_api_keys()
+        keys["a2a_secret"] = secret
+        self._save_api_keys(keys)
+        print("✓ A2A secret saved successfully")
+
+    def list_agent_roles(self) -> Dict[str, str]:
+        """Return the persisted agent roles mapping."""
+        config = self.load_config()
+        return config.get("a2a", {}).get("roles", {}) or {}
+
+    def get_agent_role(self, agent_id: str) -> Optional[str]:
+        roles = self.list_agent_roles()
+        return roles.get(agent_id)
+
+    def set_agent_role(self, agent_id: str, role: str) -> None:
+        """Persist an agent's role in config.yaml under `a2a.roles`."""
+        config = self.load_config()
+        a2a = config.get("a2a") or {}
+        roles = a2a.get("roles") or {}
+        roles[agent_id] = role
+        a2a["roles"] = roles
+        config["a2a"] = a2a
+        self.save_config(config)
+        print(f"✓ Role for {agent_id} set to: {role}")
+
+    def remove_agent_role(self, agent_id: str) -> None:
+        config = self.load_config()
+        a2a = config.get("a2a") or {}
+        roles = a2a.get("roles") or {}
+        if agent_id in roles:
+            del roles[agent_id]
+            a2a["roles"] = roles
+            config["a2a"] = a2a
+            self.save_config(config)
+            print(f"✓ Role for {agent_id} removed")
+        else:
+            print(f"No role found for {agent_id}")
+
     def _load_api_keys(self) -> Dict[str, str]:
         """Load API keys from secure storage."""
         if not self.keys_file.exists():
