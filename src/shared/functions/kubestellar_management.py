@@ -99,6 +99,7 @@ class KubeStellarManagementFunction(BaseFunction):
         include_wds: bool = False,
         kubeconfig: str = "",
         output_format: str = "comprehensive",
+        verify_setup: bool = False,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """
@@ -120,11 +121,25 @@ class KubeStellarManagementFunction(BaseFunction):
             include_wds: Include WDS clusters in analysis
             kubeconfig: Path to kubeconfig file
             output_format: Output format (comprehensive, summary, detailed, json)
+            verify_setup: Verify KubeStellar setup before proceeding
 
         Returns:
             Dictionary with comprehensive KubeStellar analysis results
         """
         try:
+            # Verify setup if requested
+            if verify_setup:
+                from .kubestellar_setup import KubeStellarSetupFunction
+                setup_function = KubeStellarSetupFunction()
+                verification_result = await setup_function.execute(
+                    operation="verify_prerequisites", output_format="summary"
+                )
+                if verification_result["status"] != "success":
+                    return {
+                        "status": "error", 
+                        "error": "KubeStellar setup verification failed. Please run kubestellar_setup first.",
+                        "setup_issues": verification_result.get("missing_required", [])
+                    }
             # Discover KubeStellar cluster topology
             clusters = await self._discover_kubestellar_topology(
                 kubeconfig, include_wds
@@ -1221,6 +1236,11 @@ class KubeStellarManagementFunction(BaseFunction):
                     "description": "Output format for results",
                     "enum": ["comprehensive", "summary", "detailed", "json"],
                     "default": "comprehensive",
+                },
+                "verify_setup": {
+                    "type": "boolean",
+                    "description": "Verify KubeStellar setup before proceeding",
+                    "default": False,
                 },
             },
             "required": [],

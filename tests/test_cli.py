@@ -18,14 +18,14 @@ def test_cli_help(runner):
     """Test CLI help command."""
     result = runner.invoke(cli, ["--help"])
     assert result.exit_code == 0
-    assert "KubeStellar Agent" in result.output
+    assert "KubeStellar A2A Agent" in result.output
 
 
 def test_list_functions(runner):
     """Test listing available functions."""
     result = runner.invoke(cli, ["list-functions"])
     assert result.exit_code == 0
-    assert "Available functions:" in result.output
+    assert "Available A2A Functions:" in result.output
     assert "get_kubeconfig" in result.output
 
 

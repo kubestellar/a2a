@@ -48,6 +48,11 @@ Comprehensive installation and configuration for production use.
 
 **[→ Installation Guide](./installation)**
 
+### 🌟 **KubeStellar Setup** (20 minutes)
+Complete KubeStellar v0.28.0 setup with automated prerequisite verification and cluster management.
+
+**[→ KubeStellar Setup Guide](./kubestellar-setup)**
+
 ### ⚙️ **Configuration Deep Dive** (10 minutes)
 Advanced configuration options and customization.
 
@@ -98,6 +103,7 @@ graph TB
 
 ### **Functions**
 Self-contained operations that can be executed via CLI or AI interface. Examples:
+- `kubestellar_setup` - Complete KubeStellar setup with prerequisite verification
 - `get_kubeconfig` - Analyze cluster configurations
 - `helm_deploy` - Deploy Helm charts with binding policies
 - `kubestellar_management` - Advanced KubeStellar automation
@@ -124,14 +130,20 @@ Native support for KubeStellar 2024 architecture:
 
 Ready to begin? Choose your preferred starting point:
 
-<div style={{display: 'flex', gap: '20px', marginTop: '30px'}}>
-  <div style={{flex: 1, padding: '20px', border: '2px solid #326ce5', borderRadius: '8px'}}>
+<div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginTop: '30px'}}>
+  <div style={{padding: '20px', border: '2px solid #326ce5', borderRadius: '8px'}}>
     <h3>🚀 I want to try it now</h3>
     <p>Get KubeStellar A2A running in 5 minutes with our quick start guide.</p>
     <a href="./quick-start" style={{color: '#326ce5', fontWeight: 'bold'}}>→ Quick Start</a>
   </div>
   
-  <div style={{flex: 1, padding: '20px', border: '2px solid #28a745', borderRadius: '8px'}}>
+  <div style={{padding: '20px', border: '2px solid #ffc107', borderRadius: '8px'}}>
+    <h3>🌟 I need KubeStellar setup</h3>
+    <p>Complete KubeStellar v0.28.0 setup with automated cluster management and prerequisite verification.</p>
+    <a href="./kubestellar-setup" style={{color: '#e0a800', fontWeight: 'bold'}}>→ KubeStellar Setup</a>
+  </div>
+  
+  <div style={{padding: '20px', border: '2px solid #28a745', borderRadius: '8px'}}>
     <h3>📦 I want the full setup</h3>
     <p>Complete installation with all features configured for production use.</p>
     <a href="./installation" style={{color: '#28a745', fontWeight: 'bold'}}>→ Installation Guide</a>

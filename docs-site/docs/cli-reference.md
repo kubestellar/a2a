@@ -89,6 +89,7 @@ Agent commands:
 
 ### Core Functions
 
+- **kubestellar_setup** - Complete KubeStellar setup with prerequisite verification
 - **get_kubeconfig** - Analyze kubeconfig file
 - **kubestellar_management** - Multi-cluster resource management
 - **helm_deploy** - Deploy Helm charts with binding policies
@@ -102,6 +103,27 @@ Agent commands:
 - **deploy_to** - Deploy to specific clusters
 
 ## Examples
+
+### KubeStellar Setup
+```bash
+# Verify prerequisites
+uv run kubestellar execute kubestellar_setup -P operation=verify_prerequisites
+
+# Clean up existing clusters
+uv run kubestellar execute kubestellar_setup -P operation=cleanup -P platform=kind
+
+# Complete KubeStellar setup
+uv run kubestellar execute kubestellar_setup \
+  -P operation=full_setup \
+  -P platform=kind \
+  -P kubestellar_version=v0.28.0
+
+# Quick automated setup
+uv run kubestellar execute kubestellar_setup \
+  -P operation=full_setup \
+  -P automated_script=true \
+  -P platform=kind
+```
 
 ### Get Cluster Information
 ```bash

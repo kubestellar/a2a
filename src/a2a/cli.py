@@ -16,7 +16,30 @@ from .agent import AgentChat
 @click.group()
 @click.pass_context
 def cli(ctx):
-    """KubeStellar Agent - Execute functions from command line."""
+    """🌟 KubeStellar A2A Agent - AI-Powered Multi-Cluster Kubernetes Management
+    
+    Advanced agent-to-agent platform for intelligent Kubernetes operations:
+    
+    🚀 QUICK START:
+      kubestellar execute kubestellar_setup -p '{"operation": "verify_prerequisites"}'
+      kubestellar execute kubestellar_setup -p '{"operation": "full_setup", "platform": "kind"}'
+    
+    🤖 KEY FEATURES:
+      • Complete KubeStellar v0.28.0 setup automation
+      • Multi-cluster resource management and deployment  
+      • AI-powered interactive agent with natural language queries
+      • Comprehensive prerequisite verification and error handling
+      • Integration with Claude Desktop via MCP server
+    
+    📊 CORE FUNCTIONS:
+      • kubestellar_setup     - Automated KubeStellar environment setup
+      • kubestellar_management - Advanced multi-cluster analysis
+      • helm_deploy           - Helm charts with binding policies
+      • multicluster_create   - Deploy across all clusters
+      • multicluster_logs     - Aggregate logs from multiple clusters
+    
+    🔗 Learn more: https://kubestellar.github.io/a2a/
+    """
     # Initialize functions when CLI starts
     initialize_functions()
     ctx.ensure_object(dict)
@@ -24,25 +47,57 @@ def cli(ctx):
 
 @cli.command()
 def list_functions():
-    """List all available functions."""
+    """List all available A2A functions with setup highlights."""
     functions = function_registry.list_all()
     if not functions:
         click.echo("No functions registered.")
         return
 
-    click.echo("Available functions:")
-    for func in functions:
-        click.echo(f"\n- {func.name}")
-        click.echo(f"  Description: {func.description}")
+    # Sort functions to show setup first
+    sorted_functions = sorted(functions, key=lambda f: (
+        0 if f.name == "kubestellar_setup" else
+        1 if f.name == "kubestellar_management" else 2
+    ))
+
+    click.echo("🤖 Available A2A Functions:\n")
+    
+    for i, func in enumerate(sorted_functions):
+        # Highlight setup function
+        if func.name == "kubestellar_setup":
+            click.echo(f"🌟 {func.name} (FEATURED)")
+            click.echo(f"  📖 {func.description}")
+        else:
+            click.echo(f"- {func.name}")
+            click.echo(f"  Description: {func.description}")
+            
         schema = func.get_schema()
         if schema.get("properties"):
             click.echo("  Parameters:")
-            for param, details in schema["properties"].items():
-                required = param in schema.get("required", [])
-                req_str = " (required)" if required else " (optional)"
-                click.echo(f"    - {param}: {details.get('type', 'any')}{req_str}")
-                if "description" in details:
-                    click.echo(f"      {details['description']}")
+            param_count = len(schema["properties"])
+            if param_count > 5:  # Show only key parameters for long lists
+                key_params = list(schema["properties"].items())[:3]
+                for param, details in key_params:
+                    required = param in schema.get("required", [])
+                    req_str = " (required)" if required else " (optional)"
+                    click.echo(f"    - {param}: {details.get('type', 'any')}{req_str}")
+                    if "description" in details:
+                        click.echo(f"      {details['description']}")
+                click.echo(f"    ... and {param_count - 3} more parameters")
+            else:
+                for param, details in schema["properties"].items():
+                    required = param in schema.get("required", [])
+                    req_str = " (required)" if required else " (optional)"
+                    click.echo(f"    - {param}: {details.get('type', 'any')}{req_str}")
+                    if "description" in details:
+                        click.echo(f"      {details['description']}")
+        
+        if i < len(sorted_functions) - 1:
+            click.echo("")
+    
+    click.echo("\n💡 Quick Start:")
+    click.echo("   kubestellar describe kubestellar_setup")
+    click.echo("   kubestellar execute kubestellar_setup -p '{\"operation\": \"verify_prerequisites\"}'")
+    click.echo("\n🔗 Full documentation: https://kubestellar.github.io/a2a/")
 
 
 @cli.command()
