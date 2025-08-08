@@ -170,8 +170,8 @@ class GetClusterLabelsFunction(BaseFunction):
                 "stderr": str(e),
             }
 
-    def get_parameter_schema(self) -> Dict[str, Any]:
-        """Get parameter schema for validation."""
+    def get_schema(self) -> Dict[str, Any]:
+        """Return JSON schema for function parameters."""
         return {
             "type": "object",
             "properties": {
@@ -191,12 +191,4 @@ class GetClusterLabelsFunction(BaseFunction):
                 }
             },
             "required": []
-        }
-        
-    def get_schema(self) -> Dict[str, Any]:
-        """Get complete schema for the function."""
-        return {
-            "name": self.name,
-            "description": self.description,
-            "parameters": self.get_parameter_schema()
         }
