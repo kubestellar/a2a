@@ -12,6 +12,9 @@ from mcp.server.models import InitializationOptions
 
 from ..shared.base_functions import function_registry
 from ..shared.functions import initialize_functions
+from ..a2a.context import SharedContext, ClusterSnapshot
+from ..a2a.broker import A2ABroker
+from ..a2a.protocol import Message, MessageType
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -53,6 +56,11 @@ async def run_server():
     initialize_functions()
 
     server = Server("kubestellar-mcp-server")
+
+    # A2A primitives
+    shared_context = SharedContext()
+    broker = A2ABroker()
+    agent_id = "mcp-server"
 
     # Register handlers
     server.set_request_handler(types.ListToolsRequest, handle_list_tools)
