@@ -34,6 +34,44 @@ uv run kubestellar execute <function_name>
 uv run kubestellar agent  # Start interactive AI agent
 ```
 
+## AI Provider Configuration
+
+The agent supports multiple AI providers:
+
+### Available Providers
+- **OpenAI** (GPT-4, GPT-4o, etc.)
+- **Google Gemini** (gemini-1.5-flash, gemini-1.5-pro, etc.)
+
+### Setting Up API Keys
+
+```bash
+# Set OpenAI API key
+uv run kubestellar config set-key openai YOUR_OPENAI_API_KEY
+
+# Set Gemini API key  
+uv run kubestellar config set-key gemini YOUR_GEMINI_API_KEY
+
+# Set default provider
+uv run kubestellar config set-default gemini
+
+# List configured providers
+uv run kubestellar config list-keys
+
+# Show current configuration
+uv run kubestellar config show
+```
+
+### Using Different Providers
+
+```bash
+# Use default provider
+uv run kubestellar agent
+
+# Use specific provider
+uv run kubestellar agent --provider gemini
+uv run kubestellar agent --provider openai
+```
+
 ## MCP Server Setup
 
 Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):

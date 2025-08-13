@@ -12,6 +12,7 @@ from .base import (
 )
 from .config import ConfigManager, get_config_manager
 from .openai import OpenAIProvider
+from .gemini import GeminiProvider
 from .registry import get_provider, list_providers, register_provider
 
 __all__ = [
@@ -26,6 +27,7 @@ __all__ = [
     "ConfigManager",
     "get_config_manager",
     "OpenAIProvider",
+    "GeminiProvider",
     "get_provider",
     "list_providers",
     "register_provider",
