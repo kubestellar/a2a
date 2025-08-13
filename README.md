@@ -21,6 +21,9 @@ https://github.com/user-attachments/assets/fd5746f9-6620-4aeb-8150-dd9bf9eab694
 ## CLI Setup (uv)
 
 ```bash
+# Enable virtual environment
+uv venv
+
 # Install with uv
 uv pip install -e ".[dev]"
 
