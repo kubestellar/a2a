@@ -11,8 +11,8 @@ from .base import (
     ToolResult,
 )
 from .config import ConfigManager, get_config_manager
-from .openai import OpenAIProvider
 from .gemini import GeminiProvider
+from .openai import OpenAIProvider
 from .registry import get_provider, list_providers, register_provider
 
 __all__ = [
