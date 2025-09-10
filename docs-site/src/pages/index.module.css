@@ -127,3 +127,96 @@
     max-width: 300px;
   }
 }
+
+.featuresHeader {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.featuresTitle {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.featuresSubtitle {
+  color: #222;
+  font-size: 1.1rem;
+  margin-bottom: 0;
+}
+
+.stepsGrid {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.stepBox {
+  background: var(--ifm-background-surface-color, #fff);
+  border-radius: 1.2rem;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  padding: 2.5rem 1.5rem 2rem 1.5rem;
+  flex: 1 1 220px;
+  max-width: 300px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.stepBox:hover {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  transform: translateY(-4px) scale(1.03);
+}
+
+.stepNumber {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: var(--ifm-color-primary);
+  color: #fff;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.stepIcon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+}
+
+.stepTitle {
+  margin-bottom: 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.stepDesc {
+  text-align: center;
+  color: #222;
+  font-size: 1rem;
+}
+
+@media (max-width: 900px) {
+  .stepsGrid {
+    flex-direction: column;
+    align-items: center;
+  }
+  .stepBox {
+    max-width: 100%;
+    width: 100%;
+  }
+}
