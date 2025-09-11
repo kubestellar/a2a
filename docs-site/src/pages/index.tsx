@@ -36,44 +36,41 @@ function HomepageHeader() {
 }
 
 function HowItWorks() {
+  const steps = [
+    {
+      icon: "🤖",
+      title: "AI-Powered Interface",
+      desc: "Natural language processing for Kubernetes operations. Describe what you want, and let AI handle the complexity.",
+    },
+    {
+      icon: "🌐",
+      title: "Multi-Cluster Native",
+      desc: "Seamlessly manage resources across multiple Kubernetes clusters with advanced targeting and policy enforcement.",
+    },
+    {
+      icon: "⚙️",
+      title: "KubeStellar Integration",
+      desc: "Full support for KubeStellar 2024 architecture with WDS, ITS, and binding policies for workload placement.",
+    },
+  ];
   return (
     <section className={styles.features}>
       <div className="container">
-        <div className="row">
-          <div className="col col--12">
-            <div className="text--center">
-              <Heading as="h2">How it Works</Heading>
-              <p className="hero__subtitle">
-                KubeStellar A2A provides a unified platform for multi-cluster Kubernetes management with intelligent automation
-              </p>
-            </div>
-          </div>
+        <div className={styles.featuresHeader}>
+          <Heading as="h2" className={styles.featuresTitle}>How it Works</Heading>
+          <p className={styles.featuresSubtitle}>
+            KubeStellar A2A provides a unified platform for multi-cluster Kubernetes management with intelligent automation
+          </p>
         </div>
-        <div className="row">
-          <div className="col col--4">
-            <div className="text--center padding-horiz--md">
-              <Heading as="h3">🤖 AI-Powered Interface</Heading>
-              <p>
-                Natural language processing for Kubernetes operations. Describe what you want, and let AI handle the complexity.
-              </p>
+        <div className={styles.stepsGrid}>
+          {steps.map((step, idx) => (
+            <div className={styles.stepBox} key={step.title}>
+              <div className={styles.stepNumber}>{idx + 1}</div>
+              <div className={styles.stepIcon}>{step.icon}</div>
+              <Heading as="h3" className={styles.stepTitle}>{step.title}</Heading>
+              <p className={styles.stepDesc}>{step.desc}</p>
             </div>
-          </div>
-          <div className="col col--4">
-            <div className="text--center padding-horiz--md">
-              <Heading as="h3">🌐 Multi-Cluster Native</Heading>
-              <p>
-                Seamlessly manage resources across multiple Kubernetes clusters with advanced targeting and policy enforcement.
-              </p>
-            </div>
-          </div>
-          <div className="col col--4">
-            <div className="text--center padding-horiz--md">
-              <Heading as="h3">⚙️ KubeStellar Integration</Heading>
-              <p>
-                Full support for KubeStellar 2024 architecture with WDS, ITS, and binding policies for workload placement.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>
