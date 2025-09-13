@@ -150,10 +150,10 @@ function GetStarted() {
                   5-Minute Tutorial
                 </Link>
                 <Link
-                  className="button button--outline button--lg margin--sm"
-                  href="https://github.com/kubestellar/a2a">
-                  View on GitHub
-                </Link>
+                  className={clsx("button button--outline button--lg margin--sm", styles.githubButton)}
+                    href="https://github.com/kubestellar/a2a">
+                    View on GitHub
+                 </Link>
               </div>
             </div>
           </div>
