@@ -220,3 +220,12 @@
     width: 100%;
   }
 }
+
+.githubButton:hover,
+.githubButton:focus {
+  background: var(--ifm-hover-overlay) !important;
+  color: var(--ifm-color-primary) !important;
+  border-color: var(--ifm-color-primary) !important;
+  box-shadow: 0 2px 8px rgba(50,108,229,0.08);
+  transition: background 0.2s, color 0.2s, border 0.2s;
+}
