@@ -116,7 +116,7 @@ const config: Config = {
             },
             {
               label: 'Contributing',
-              href: 'https://github.com/kubestellar/a2a/blob/main/CONTRIBUTING.md',
+              href: 'https://github.com/kubestellar/a2a/blob/main/docs-site/docs/CONTRIBUTING.md',
             },
           ],
         },
