@@ -27,6 +27,11 @@ const sidebars: SidebarsConfig = {
       id: 'troubleshooting',
       label: 'Troubleshooting',
     },
+    {
+      type: 'doc',
+      id: 'CONTRIBUTING',
+      label: 'Contributing',
+    },
   ],
 };
 
