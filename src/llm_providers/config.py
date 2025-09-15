@@ -148,7 +148,7 @@ class ConfigManager:
             "default_provider": os.environ.get("DEFAULT_LLM_PROVIDER", "gemini"),
             "providers": {
                 "gemini": {
-                    "model": os.environ.get("GEMINI_MODEL", "gemini-1.5-flash"),
+                    "model": os.environ.get("GEMINI_MODEL", "gemini-2.0-flash"),
                     "temperature": float(os.environ.get("LLM_TEMPERATURE", "0.7")),
                 },
                 "claude": {
