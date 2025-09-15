@@ -1,3 +1,7 @@
+---
+sidebar_position: 5
+---
+
 # Contributing to A2A
 
 Greetings! 👋 We’re grateful for your interest in contributing to the **A2A project**, part of the [KubeStellar](https://github.com/kubestellar) ecosystem.
