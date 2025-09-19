@@ -4,6 +4,7 @@ import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import Heading from '@theme/Heading';
+import ProjectBot from '../components/ProjectBot';
 
 import styles from './index.module.css';
 
@@ -175,6 +176,7 @@ export default function Home(): ReactNode {
         <KeyFeatures />
         <GetStarted />
       </main>
+      <ProjectBot />
     </Layout>
   );
 }
