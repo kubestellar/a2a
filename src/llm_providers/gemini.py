@@ -43,7 +43,7 @@ class GeminiProvider(BaseLLMProvider):
 
         # Set default model if not specified
         if config.model == "default":
-            config.model = "gemini-1.5-pro"
+            config.model = "gemini-2.0-flash"
 
         # Configure API key
         genai.configure(api_key=config.api_key)
