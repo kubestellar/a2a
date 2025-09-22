@@ -374,7 +374,7 @@ For pod counts, respond like this:
                 f"   • [green]Manage[/green] binding policies and work statuses\n"
                 f"   • [green]Monitor[/green] multi-cluster resource distribution\n"
                 f"   • [green]Perform[/green] deep searches across WDS, ITS, and WEC spaces\n\n"
-                f"⚙️  Provider: [cyan]{self.provider_name}[/cyan]\n"
+                f"⚙️  Provider: [cyan]{self.provider_name.capitalize()}[/cyan]\n"
                 f"🤖 Model: [cyan]{self.provider.config.model}[/cyan]\n\n"
                 f"💡 Type [yellow]'help'[/yellow] for available commands\n"
                 f"🚪 Type [yellow]'exit'[/yellow] or [yellow]Ctrl+D[/yellow] to quit",
