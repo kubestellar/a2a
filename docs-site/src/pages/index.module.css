@@ -8,8 +8,8 @@
   text-align: center;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #326ce5 0%, #1e44a3 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--ifm-color-primary) 0%, var(--ifm-color-primary-dark) 100%);
+  color: var(--ifm-color-on-primary, #fff);
 }
 
 .heroSubtitle {
@@ -43,12 +43,12 @@
 
 .features {
   padding: 4rem 0;
-  background: #f8f9fa;
+  background: var(--ifm-background-surface-color, #f8f9fa);
 }
 
 .keyFeatures {
   padding: 4rem 0;
-  background: white;
+  background: var(--ifm-background-color, #fff);
 }
 
 .featureList {
@@ -60,20 +60,20 @@
 .featureList li {
   padding: 0.5rem 0;
   font-size: 1.1rem;
-  color: #28a745;
+  color: var(--ifm-color-success, #28a745);
   font-weight: 500;
 }
 
 .codeExample {
-  background: #f6f8fa;
+  background: var(--ifm-background-surface-color, #f6f8fa);
   border-radius: 8px;
   padding: 1.5rem;
-  border-left: 4px solid #326ce5;
+  border-left: 4px solid var(--ifm-color-primary);
 }
 
 .codeExample h4 {
   margin-top: 0;
-  color: #326ce5;
+  color: var(--ifm-color-primary);
   font-weight: 600;
 }
 
@@ -96,7 +96,7 @@
 
 .getStarted {
   padding: 4rem 0;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, var(--ifm-background-surface-color) 0%, var(--ifm-background-color) 100%);
   text-align: center;
 }
 
@@ -141,7 +141,7 @@
 }
 
 .featuresSubtitle {
-  color: #222;
+  color: var(--ifm-font-color-base, var(--ifm-color-content));
   font-size: 1.1rem;
   margin-bottom: 0;
 }
@@ -206,7 +206,7 @@
 
 .stepDesc {
   text-align: center;
-  color: #222;
+  color: var(--ifm-font-color-base, var(--ifm-color-content));
   font-size: 1rem;
 }
 
