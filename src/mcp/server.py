@@ -9,7 +9,6 @@ import mcp.server.stdio
 import mcp.types as types
 from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
-
 from src.shared.base_functions import function_registry
 from src.shared.functions import initialize_functions
 
