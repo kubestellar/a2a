@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from ..src.shared.functions.kubeconfig import KubeconfigFunction
+from src.shared.functions.kubeconfig import KubeconfigFunction
 
 
 @pytest.fixture

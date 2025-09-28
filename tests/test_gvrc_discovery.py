@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from ..src.shared.functions.gvrc_discovery import GVRCDiscoveryFunction
+from src.shared.functions.gvrc_discovery import GVRCDiscoveryFunction
 
 
 @pytest.fixture

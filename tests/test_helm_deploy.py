@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from ..src.shared.functions.helm_deploy import HelmDeployFunction
+from src.shared.functions.helm_deploy import HelmDeployFunction
 
 
 @pytest.fixture

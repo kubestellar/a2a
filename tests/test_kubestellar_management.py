@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from ..src.shared.functions.kubestellar_management import KubeStellarManagementFunction
+from src.shared.functions.kubestellar_management import KubeStellarManagementFunction
 
 
 class TestKubeStellarManagementFunction:

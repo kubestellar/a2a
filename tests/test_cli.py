@@ -5,7 +5,7 @@ import json
 import pytest
 from click.testing import CliRunner
 
-from ..src.cli import cli
+from src.cli import cli
 
 
 @pytest.fixture
