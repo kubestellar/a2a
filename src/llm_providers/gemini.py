@@ -10,7 +10,7 @@ except ImportError:
     genai = None
     HAS_GEMINI = False
 
-from .base import (
+from src.llm_providers.base import (
     BaseLLMProvider,
     LLMMessage,
     LLMResponse,
@@ -19,7 +19,7 @@ from .base import (
     ToolCall,
     ToolResult,
 )
-from .registry import register_provider
+from src.llm_providers.registry import register_provider
 
 
 class GeminiProvider(BaseLLMProvider):

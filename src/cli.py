@@ -6,11 +6,11 @@ from typing import Any, Dict, Optional
 
 import click
 
-from ..llm_providers.config import get_config_manager
-from ..llm_providers.registry import list_providers
-from ..shared.base_functions import async_to_sync, function_registry
-from ..shared.functions import initialize_functions
-from .agent import AgentChat
+from src.llm_providers.config import get_config_manager
+from src.llm_providers.registry import list_providers
+from src.shared.base_functions import async_to_sync, function_registry
+from src.shared.functions import initialize_functions
+from src.agent import AgentChat
 
 
 @click.group()
