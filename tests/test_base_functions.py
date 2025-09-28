@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 import pytest
 
-from src.shared.base_functions import BaseFunction, FunctionRegistry, async_to_sync
+from ..src.shared.base_functions import BaseFunction, FunctionRegistry, async_to_sync
 
 
 class MockFunction(BaseFunction):

@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.shared.functions.namespace_utils import NamespaceUtilsFunction
+from ..src.shared.functions.namespace_utils import NamespaceUtilsFunction
 
 
 @pytest.fixture
