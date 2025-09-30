@@ -76,7 +76,6 @@ class MultiClusterCreateFunction(BaseFunction):
             all_namespaces = params.all_namespaces
             namespace_selector = params.namespace_selector
             target_namespaces = params.target_namespaces
-            resource_filter = params.resource_filter  # reserved for future use
             api_version = params.api_version
             kubeconfig = params.kubeconfig
             remote_context = params.remote_context
