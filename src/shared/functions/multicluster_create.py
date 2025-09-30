@@ -6,9 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from ..base_functions import BaseFunction
 
-# --------------------------------------------------------------------------- #
-# Dataclasses                                                                 #
-# --------------------------------------------------------------------------- #
+
 
 
 @dataclass
@@ -61,9 +59,7 @@ class MultiClusterCreateFunction(BaseFunction):
             Dictionary with creation results from all clusters
         """
         try:
-            # ---------------------------------------------------------------
-            # 1. Build typed input object & unpack                          #
-            # ---------------------------------------------------------------
+
             params = MultiClusterCreateInput(**kwargs)
 
             resource_type = params.resource_type
@@ -82,9 +78,6 @@ class MultiClusterCreateFunction(BaseFunction):
             dry_run = params.dry_run
             labels = params.labels
 
-            # ---------------------------------------------------------------
-            # 2. Original validation (unchanged)                            #
-            # ---------------------------------------------------------------
             # Validate inputs
             if not filename and not resource_type:
                 err = {
