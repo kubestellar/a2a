@@ -6,10 +6,6 @@ from typing import Any, Dict, List, Optional
 
 from ..base_functions import BaseFunction
 
-# --------------------------------------------------------------------------- #
-# Dataclasses                                                                 #
-# --------------------------------------------------------------------------- #
-
 
 @dataclass
 class ResourceInfo:
@@ -31,8 +27,6 @@ class NamespaceInfo:
     status: str
     labels: Dict[str, str]
     annotations: Dict[str, str]
-
-# ----------------- NEW INPUT / OUTPUT WRAPPERS ----------------------------- #
 
 
 @dataclass
@@ -86,9 +80,7 @@ class GVRCDiscoveryFunction(BaseFunction):
             Dictionary with GVRC discovery results from all clusters
         """
         try:
-            # -----------------------------------------------------------
-            # 1. Build typed input object & unpack                        #
-            # -----------------------------------------------------------
+
             params = GVRCDiscoveryInput(**kwargs)
 
             resource_filter = params.resource_filter
