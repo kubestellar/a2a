@@ -6,7 +6,7 @@ Supports binding policies, workload transformations, and status management.
 
 import asyncio
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
 from src.shared.base_functions import BaseFunction
@@ -73,6 +73,35 @@ class ManifestWork:
     status: str
 
 
+@dataclass
+class KubeStellarManagementInput:
+    """All parameters accepted by kubestellar_management.execute."""
+
+    operation: str = "deep_search"
+    resource_types: Optional[List[str]] = None
+    namespace_names: Optional[List[str]] = None
+    all_namespaces: bool = True
+    cluster_names: Optional[List[str]] = None
+    all_clusters: bool = True
+    label_selector: str = ""
+    field_selector: str = ""
+    binding_policies: bool = True
+    work_statuses: bool = True
+    placement_analysis: bool = True
+    deep_analysis: bool = True
+    include_wds: bool = False
+    kubeconfig: str = ""
+    output_format: str = "comprehensive"
+
+
+@dataclass
+class KubeStellarManagementOutput:
+    """Uniform envelope returned to callers."""
+
+    status: str
+    details: Dict[str, Any] = field(default_factory=dict)
+
+
 class KubeStellarManagementFunction(BaseFunction):
     """Enhanced KubeStellar multi-cluster management with deep search and binding policy integration."""
 
@@ -82,25 +111,7 @@ class KubeStellarManagementFunction(BaseFunction):
             description="Advanced KubeStellar multi-cluster resource management with deep search capabilities, binding policy integration, work status tracking, and comprehensive cluster topology analysis. Provides detailed insights into resource distribution, policy compliance, and cross-cluster relationships.",
         )
 
-    async def execute(
-        self,
-        operation: str = "deep_search",
-        resource_types: List[str] = None,
-        namespace_names: List[str] = None,
-        all_namespaces: bool = True,
-        cluster_names: List[str] = None,
-        all_clusters: bool = True,
-        label_selector: str = "",
-        field_selector: str = "",
-        binding_policies: bool = True,
-        work_statuses: bool = True,
-        placement_analysis: bool = True,
-        deep_analysis: bool = True,
-        include_wds: bool = False,
-        kubeconfig: str = "",
-        output_format: str = "comprehensive",
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
+    async def execute(self, **kwargs: Any) -> Dict[str, Any]:
         """
         Execute KubeStellar management operations with deep search and policy integration.
 
@@ -125,15 +136,33 @@ class KubeStellarManagementFunction(BaseFunction):
             Dictionary with comprehensive KubeStellar analysis results
         """
         try:
+
+            p = KubeStellarManagementInput(**kwargs)
+
+            operation = p.operation
+            resource_types = p.resource_types
+            namespace_names = p.namespace_names
+            all_namespaces = p.all_namespaces
+            cluster_names = p.cluster_names
+            all_clusters = p.all_clusters
+            label_selector = p.label_selector
+            field_selector = p.field_selector
+            binding_policies = p.binding_policies
+            work_statuses = p.work_statuses
+            placement_analysis = p.placement_analysis
+            deep_analysis = p.deep_analysis
+            include_wds = p.include_wds
+            kubeconfig = p.kubeconfig
+            output_format = p.output_format
+
+
             # Discover KubeStellar cluster topology
             clusters = await self._discover_kubestellar_topology(
                 kubeconfig, include_wds
             )
             if not clusters:
-                return {
-                    "status": "error",
-                    "error": "No KubeStellar clusters discovered",
-                }
+                err = {"error": "No KubeStellar clusters discovered"}
+                return asdict(KubeStellarManagementOutput(status="error", details=err))
 
             # Filter clusters if specified
             if cluster_names and not all_clusters:
@@ -141,7 +170,7 @@ class KubeStellarManagementFunction(BaseFunction):
 
             # Execute operation based on type
             if operation == "deep_search":
-                return await self._perform_deep_search(
+                result = await self._perform_deep_search(
                     clusters,
                     resource_types,
                     namespace_names,
@@ -155,12 +184,18 @@ class KubeStellarManagementFunction(BaseFunction):
                     kubeconfig,
                     output_format,
                 )
+                return asdict(
+                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                )
             elif operation == "policy_analysis":
-                return await self._analyze_binding_policies(
+                result = await self._analyze_binding_policies(
                     clusters, kubeconfig, output_format
                 )
+                return asdict(
+                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                )
             elif operation == "resource_inventory":
-                return await self._create_resource_inventory(
+                result = await self._create_resource_inventory(
                     clusters,
                     resource_types,
                     namespace_names,
@@ -168,21 +203,23 @@ class KubeStellarManagementFunction(BaseFunction):
                     kubeconfig,
                     output_format,
                 )
+                return asdict(
+                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                )
             elif operation == "topology_map":
-                return await self._create_topology_map(
+                result = await self._create_topology_map(
                     clusters, kubeconfig, output_format
                 )
+                return asdict(
+                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                )
             else:
-                return {
-                    "status": "error",
-                    "error": f"Unsupported operation: {operation}",
-                }
+                err = {"error": f"Unsupported operation: {operation}"}
+                return asdict(KubeStellarManagementOutput(status="error", details=err))
 
         except Exception as e:
-            return {
-                "status": "error",
-                "error": f"Failed to execute KubeStellar management operation: {str(e)}",
-            }
+            err = {"error": f"Failed to execute KubeStellar management: {str(e)}"}
+            return asdict(KubeStellarManagementOutput(status="error", details=err))
 
     async def _discover_kubestellar_topology(
         self, kubeconfig: str, include_wds: bool
