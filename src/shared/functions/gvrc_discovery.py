@@ -1,10 +1,14 @@
 """GVRC (Group, Version, Resource, Category) discovery utilities for KubeStellar."""
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
 from ..base_functions import BaseFunction
+
+# --------------------------------------------------------------------------- #
+# Dataclasses                                                                 #
+# --------------------------------------------------------------------------- #
 
 
 @dataclass
@@ -28,6 +32,31 @@ class NamespaceInfo:
     labels: Dict[str, str]
     annotations: Dict[str, str]
 
+# ----------------- NEW INPUT / OUTPUT WRAPPERS ----------------------------- #
+
+
+@dataclass
+class GVRCDiscoveryInput:
+    """All parameters accepted by gvrc_discovery.execute."""
+
+    resource_filter: str = ""
+    namespace_filter: str = ""
+    all_namespaces: bool = False
+    api_resources: bool = True
+    custom_resources: bool = True
+    categories: Optional[List[str]] = None
+    kubeconfig: str = ""
+    remote_context: str = ""
+    output_format: str = "summary"
+
+
+@dataclass
+class GVRCDiscoveryOutput:
+    """Uniform envelope returned to callers."""
+
+    status: str
+    details: Dict[str, Any] = field(default_factory=dict)
+
 
 class GVRCDiscoveryFunction(BaseFunction):
     """Function to discover Group, Version, Resource, Category information across clusters."""
@@ -38,19 +67,7 @@ class GVRCDiscoveryFunction(BaseFunction):
             description="Discover and inventory all available Kubernetes API resources (pods, services, CRDs, etc.) across clusters. Shows Group/Version/Resource/Category (GVRC) information, API versions, and resource capabilities. Use this to understand what resources are available in your clusters, find custom resources, or check API compatibility across your fleet.",
         )
 
-    async def execute(
-        self,
-        resource_filter: str = "",
-        namespace_filter: str = "",
-        all_namespaces: bool = False,
-        api_resources: bool = True,
-        custom_resources: bool = True,
-        categories: List[str] = None,
-        kubeconfig: str = "",
-        remote_context: str = "",
-        output_format: str = "summary",
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
+    async def execute(self, **kwargs: Any) -> Dict[str, Any]:
         """
         Discover GVRC information across clusters.
 
@@ -69,10 +86,30 @@ class GVRCDiscoveryFunction(BaseFunction):
             Dictionary with GVRC discovery results from all clusters
         """
         try:
+            # -----------------------------------------------------------
+            # 1. Build typed input object & unpack                        #
+            # -----------------------------------------------------------
+            params = GVRCDiscoveryInput(**kwargs)
+
+            resource_filter = params.resource_filter
+            namespace_filter = params.namespace_filter
+            all_namespaces = params.all_namespaces
+            api_resources = params.api_resources
+            custom_resources = params.custom_resources
+            categories = params.categories
+            kubeconfig = params.kubeconfig
+            remote_context = params.remote_context
+            output_format = params.output_format
+
+            # -----------------------------------------------------------
+            # 2. Original implementation                                  #
+            # -----------------------------------------------------------
+
             # Discover clusters
             clusters = await self._discover_clusters(kubeconfig, remote_context)
             if not clusters:
-                return {"status": "error", "error": "No clusters discovered"}
+                err = {"error": "No clusters discovered"}
+                return asdict(GVRCDiscoveryOutput(status="error", details=err))
 
             # Discover resources and namespaces across all clusters
             results = {}
@@ -99,16 +136,18 @@ class GVRCDiscoveryFunction(BaseFunction):
             else:
                 summary = results
 
-            return {
-                "status": "success" if success_count > 0 else "error",
+            final = {
                 "clusters_total": len(clusters),
                 "clusters_succeeded": success_count,
                 "clusters_failed": len(clusters) - success_count,
                 "discovery_results": summary,
             }
+            status = "success" if success_count > 0 else "error"
+            return asdict(GVRCDiscoveryOutput(status=status, details=final))
 
         except Exception as e:
-            return {"status": "error", "error": f"Failed to discover GVRC: {str(e)}"}
+            err = {"error": f"Failed to discover GVRC: {str(e)}"}
+            return asdict(GVRCDiscoveryOutput(status="error", details=err))
 
     async def _discover_cluster_gvrc(
         self,
