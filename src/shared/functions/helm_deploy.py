@@ -40,7 +40,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from ..base_functions import BaseFunction
+from src.shared.base_functions import BaseFunction
 
 
 class HelmDeployFunction(BaseFunction):

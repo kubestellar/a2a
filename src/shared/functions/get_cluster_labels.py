@@ -8,7 +8,7 @@ import asyncio
 import json
 from typing import Any, Dict, List
 
-from ..base_functions import BaseFunction
+from src.shared.base_functions import BaseFunction
 
 
 class GetClusterLabelsFunction(BaseFunction):
