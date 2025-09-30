@@ -31,9 +31,7 @@ class KubeconfigOutput:
     details: Dict[str, Any] = field(default_factory=dict)
 
 
-# --------------------------------------------------------------------------- #
-# Function
-# --------------------------------------------------------------------------- #
+
 
 
 class KubeconfigFunction(BaseFunction):
@@ -57,17 +55,13 @@ class KubeconfigFunction(BaseFunction):
         Returns:
             Dictionary containing kubeconfig details
         """
-        # ---------------------------------------------------------------
-        # 1. Build typed input object & unpack
-        # ---------------------------------------------------------------
+
         params = KubeconfigInput(**kwargs)
         kubeconfig_path = params.kubeconfig_path
         context = params.context
         detail_level = params.detail_level
 
-        # ---------------------------------------------------------------
-        # 2. Original implementation (mostly unchanged)
-        # ---------------------------------------------------------------
+
 
         # Determine kubeconfig path
         if not kubeconfig_path:
