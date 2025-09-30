@@ -6,9 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from ..base_functions import BaseFunction
 
-# --------------------------------------------------------------------------- #
-# Dataclasses                                                                 #
-# --------------------------------------------------------------------------- #
+
 
 
 @dataclass
@@ -65,9 +63,7 @@ class MultiClusterLogsFunction(BaseFunction):
             Dictionary with logs from all clusters
         """
         try:
-            # ---------------------------------------------------------------
-            # 1. Build typed input object and unpack                         #
-            # ---------------------------------------------------------------
+
             params = MultiClusterLogsInput(**kwargs)
 
             pod_name = params.pod_name
@@ -91,9 +87,7 @@ class MultiClusterLogsFunction(BaseFunction):
             remote_context = params.remote_context
             max_log_requests = params.max_log_requests
 
-            # ---------------------------------------------------------------
-            # 2. Original validation logic                                   #
-            # ---------------------------------------------------------------
+
             if (
                 not pod_name
                 and not resource_selector
@@ -105,9 +99,7 @@ class MultiClusterLogsFunction(BaseFunction):
                 }
                 return asdict(MultiClusterLogsOutput(status="error", details=err))
 
-            # ---------------------------------------------------------------
-            # 3. Proceed with original implementation                        #
-            # ---------------------------------------------------------------
+
 
             # Discover clusters
             clusters = await self._discover_clusters(kubeconfig, remote_context)
