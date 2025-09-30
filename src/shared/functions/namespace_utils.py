@@ -1,11 +1,14 @@
 """Namespace management utilities for multi-cluster operations."""
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
-from ..base_functions import BaseFunction
+from src.shared.base_functions import BaseFunction
 
+# --------------------------------------------------------------------------- #
+# Helper dataclass for resources (unchanged)                                  #
+# --------------------------------------------------------------------------- #
 
 @dataclass
 class NamespaceResource:
@@ -20,6 +23,34 @@ class NamespaceResource:
     annotations: Dict[str, str]
     created: str
 
+# --------------------------------------------------------------------------- #
+# New input / output dataclasses                                              #
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class NamespaceUtilsInput:
+    """All parameters accepted by namespace_utils.execute in one bundle."""
+
+    operation: str = "list"
+    namespace_names: Optional[List[str]] = None
+    all_namespaces: bool = False
+    namespace_selector: str = ""
+    label_selector: str = ""
+    resource_types: Optional[List[str]] = None
+    include_resources: bool = False
+    kubeconfig: str = ""
+    remote_context: str = ""
+    output_format: str = "table"
+
+
+@dataclass
+class NamespaceUtilsOutput:
+    """Standardised response returned to the agent."""
+
+    status: str
+    details: Dict[str, Any] = field(default_factory=dict)
+
 
 class NamespaceUtilsFunction(BaseFunction):
     """Function to manage and discover namespace-related operations across clusters."""
@@ -30,20 +61,7 @@ class NamespaceUtilsFunction(BaseFunction):
             description="List and count pods, services, deployments and other resources across namespaces and clusters. Use operation='list' to get pod counts and resource information.",
         )
 
-    async def execute(
-        self,
-        operation: str = "list",
-        namespace_names: List[str] = None,
-        all_namespaces: bool = False,
-        namespace_selector: str = "",
-        label_selector: str = "",
-        resource_types: List[str] = None,
-        include_resources: bool = False,
-        kubeconfig: str = "",
-        remote_context: str = "",
-        output_format: str = "table",
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
+    async def execute(self, **kwargs: Any) -> Dict[str, Any]:
         """
         Execute namespace utility operations.
 
@@ -63,10 +81,29 @@ class NamespaceUtilsFunction(BaseFunction):
             Dictionary with namespace operation results
         """
         try:
+            # ----------------------------------------------------------------
+            # 1. Build typed input object and unpack for local variables
+            # ----------------------------------------------------------------
+            params = NamespaceUtilsInput(**kwargs)
+
+            operation = params.operation
+            namespace_names = params.namespace_names
+            all_namespaces = params.all_namespaces
+            namespace_selector = params.namespace_selector
+            label_selector = params.label_selector
+            resource_types = params.resource_types
+            include_resources = params.include_resources
+            kubeconfig = params.kubeconfig
+            remote_context = params.remote_context
+            output_format = params.output_format
+
+            # ----------------------------------------------------------------
+            # 2. Original implementation (unchanged)
+            # ----------------------------------------------------------------
             # Discover clusters
             clusters = await self._discover_clusters(kubeconfig, remote_context)
             if not clusters:
-                return {"status": "error", "error": "No clusters discovered"}
+                return asdict(NamespaceUtilsOutput(status="error", details={"error": "No clusters discovered"}))
 
             # Execute operation across clusters
             results = {}
@@ -88,20 +125,19 @@ class NamespaceUtilsFunction(BaseFunction):
             # Aggregate results
             success_count = sum(1 for r in results.values() if r["status"] == "success")
 
-            return {
-                "status": "success" if success_count > 0 else "error",
+            final = {
                 "operation": operation,
                 "clusters_total": len(clusters),
                 "clusters_succeeded": success_count,
                 "clusters_failed": len(clusters) - success_count,
                 "results": results,
             }
+            status = "success" if success_count > 0 else "error"
+            return asdict(NamespaceUtilsOutput(status=status, details=final))
 
         except Exception as e:
-            return {
-                "status": "error",
-                "error": f"Failed to execute namespace operation: {str(e)}",
-            }
+            err = {"error": f"Failed to execute namespace operation: {str(e)}"}
+            return asdict(NamespaceUtilsOutput(status="error", details=err))
 
     async def _execute_namespace_operation(
         self,
