@@ -72,10 +72,6 @@ class ManifestWork:
     applied_resources: List[Dict[str, str]]
     status: str
 
-# --------------------------------------------------------------------------- #
-# New input / output dataclasses                                              #
-# --------------------------------------------------------------------------- #
-
 
 @dataclass
 class KubeStellarManagementInput:
@@ -140,9 +136,7 @@ class KubeStellarManagementFunction(BaseFunction):
             Dictionary with comprehensive KubeStellar analysis results
         """
         try:
-            # -----------------------------------------------------------
-            # 1. Build typed input object & unpack                        #
-            # -----------------------------------------------------------
+
             p = KubeStellarManagementInput(**kwargs)
 
             operation = p.operation
@@ -161,9 +155,6 @@ class KubeStellarManagementFunction(BaseFunction):
             kubeconfig = p.kubeconfig
             output_format = p.output_format
 
-            # -----------------------------------------------------------
-            # 2. Original implementation                                  #
-            # -----------------------------------------------------------
 
             # Discover KubeStellar cluster topology
             clusters = await self._discover_kubestellar_topology(
