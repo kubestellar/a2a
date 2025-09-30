@@ -6,9 +6,6 @@ from typing import Any, Dict, List, Optional
 
 from src.shared.base_functions import BaseFunction
 
-# --------------------------------------------------------------------------- #
-# Helper dataclass for resources (unchanged)                                  #
-# --------------------------------------------------------------------------- #
 
 @dataclass
 class NamespaceResource:
@@ -23,9 +20,7 @@ class NamespaceResource:
     annotations: Dict[str, str]
     created: str
 
-# --------------------------------------------------------------------------- #
-# New input / output dataclasses                                              #
-# --------------------------------------------------------------------------- #
+
 
 
 @dataclass
@@ -81,9 +76,7 @@ class NamespaceUtilsFunction(BaseFunction):
             Dictionary with namespace operation results
         """
         try:
-            # ----------------------------------------------------------------
-            # 1. Build typed input object and unpack for local variables
-            # ----------------------------------------------------------------
+
             params = NamespaceUtilsInput(**kwargs)
 
             operation = params.operation
@@ -97,9 +90,7 @@ class NamespaceUtilsFunction(BaseFunction):
             remote_context = params.remote_context
             output_format = params.output_format
 
-            # ----------------------------------------------------------------
-            # 2. Original implementation (unchanged)
-            # ----------------------------------------------------------------
+
             # Discover clusters
             clusters = await self._discover_clusters(kubeconfig, remote_context)
             if not clusters:
