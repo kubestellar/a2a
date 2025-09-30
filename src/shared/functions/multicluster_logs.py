@@ -1,9 +1,48 @@
 """Multi-cluster logs function for KubeStellar."""
 
 import asyncio
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
 from ..base_functions import BaseFunction
+
+# --------------------------------------------------------------------------- #
+# Dataclasses                                                                 #
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class MultiClusterLogsInput:
+    """Full parameter set accepted by `multicluster_logs`."""
+
+    pod_name: str = ""
+    resource_selector: str = ""
+    container: str = ""
+    follow: bool = False
+    previous: bool = False
+    tail: int = -1
+    since_time: str = ""
+    since_seconds: int = 0
+    timestamps: bool = False
+    label_selector: str = ""
+    all_containers: bool = False
+    namespace: str = ""
+    all_namespaces: bool = False
+    namespace_selector: str = ""
+    target_namespaces: Optional[List[str]] = None
+    resource_types: Optional[List[str]] = None
+    api_version: str = ""
+    kubeconfig: str = ""
+    remote_context: str = ""
+    max_log_requests: int = 10
+
+
+@dataclass
+class MultiClusterLogsOutput:
+    """Uniform envelope returned to callers."""
+
+    status: str
+    details: Dict[str, Any] = field(default_factory=dict)
 
 
 class MultiClusterLogsFunction(BaseFunction):
@@ -15,75 +54,66 @@ class MultiClusterLogsFunction(BaseFunction):
             description="Retrieve and aggregate container logs from pods across multiple clusters. Use this to troubleshoot applications, monitor workloads, or gather logs from distributed services. Can target specific pods by name, label selectors, or resource types (deployment/nginx). Essential for multi-cluster debugging and observability.",
         )
 
-    async def execute(
-        self,
-        pod_name: str = "",
-        resource_selector: str = "",
-        container: str = "",
-        follow: bool = False,
-        previous: bool = False,
-        tail: int = -1,
-        since_time: str = "",
-        since_seconds: int = 0,
-        timestamps: bool = False,
-        label_selector: str = "",
-        all_containers: bool = False,
-        namespace: str = "",
-        all_namespaces: bool = False,
-        namespace_selector: str = "",
-        target_namespaces: List[str] = None,
-        resource_types: List[str] = None,
-        api_version: str = "",
-        kubeconfig: str = "",
-        remote_context: str = "",
-        max_log_requests: int = 10,
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
+    async def execute(self, **kwargs: Any) -> Dict[str, Any]:
         """
         Aggregate logs from containers across multiple clusters.
 
         Args:
-            pod_name: Name of the pod to get logs from
-            resource_selector: Resource selector (TYPE/NAME format)
-            container: Container name to get logs from
-            follow: Stream logs continuously
-            previous: Get logs from previous terminated container
-            tail: Number of recent log lines to display
-            since_time: Only return logs after specific date (RFC3339)
-            since_seconds: Only return logs newer than relative duration in seconds
-            timestamps: Include timestamps on each line
-            label_selector: Label selector to filter pods
-            all_containers: Get logs from all containers in the pod(s)
-            namespace: Target namespace (if not using all_namespaces or target_namespaces)
-            all_namespaces: Get logs from pods across all namespaces
-            namespace_selector: Namespace label selector for targeting
-            target_namespaces: Specific list of target namespaces
-            resource_types: Filter by specific resource types for GVRC discovery
-            api_version: Specific API version for resource discovery
-            kubeconfig: Path to kubeconfig file
-            remote_context: Remote context for cluster discovery
-            max_log_requests: Maximum number of concurrent log requests
+            (See MultiClusterLogsInput dataclass for full arguments)
 
         Returns:
             Dictionary with logs from all clusters
         """
         try:
-            # Validate inputs
+            # ---------------------------------------------------------------
+            # 1. Build typed input object and unpack                         #
+            # ---------------------------------------------------------------
+            params = MultiClusterLogsInput(**kwargs)
+
+            pod_name = params.pod_name
+            resource_selector = params.resource_selector
+            container = params.container
+            follow = params.follow
+            previous = params.previous
+            tail = params.tail
+            since_time = params.since_time
+            since_seconds = params.since_seconds
+            timestamps = params.timestamps
+            label_selector = params.label_selector
+            all_containers = params.all_containers
+            namespace = params.namespace
+            all_namespaces = params.all_namespaces
+            namespace_selector = params.namespace_selector
+            target_namespaces = params.target_namespaces
+            resource_types = params.resource_types
+            api_version = params.api_version  # kept for potential future use
+            kubeconfig = params.kubeconfig
+            remote_context = params.remote_context
+            max_log_requests = params.max_log_requests
+
+            # ---------------------------------------------------------------
+            # 2. Original validation logic                                   #
+            # ---------------------------------------------------------------
             if (
                 not pod_name
                 and not resource_selector
                 and not label_selector
                 and not all_namespaces
             ):
-                return {
-                    "status": "error",
+                err = {
                     "error": "Either pod_name, resource_selector, label_selector, or all_namespaces must be specified",
                 }
+                return asdict(MultiClusterLogsOutput(status="error", details=err))
+
+            # ---------------------------------------------------------------
+            # 3. Proceed with original implementation                        #
+            # ---------------------------------------------------------------
 
             # Discover clusters
             clusters = await self._discover_clusters(kubeconfig, remote_context)
             if not clusters:
-                return {"status": "error", "error": "No clusters discovered"}
+                err = {"error": "No clusters discovered"}
+                return asdict(MultiClusterLogsOutput(status="error", details=err))
 
             # Determine target namespaces
             target_ns_list = await self._resolve_target_namespaces(
@@ -97,7 +127,7 @@ class MultiClusterLogsFunction(BaseFunction):
 
             # For follow mode, we need to handle concurrent streaming
             if follow:
-                return await self._follow_logs_from_clusters(
+                resp = await self._follow_logs_from_clusters(
                     clusters,
                     pod_name,
                     resource_selector,
@@ -108,12 +138,15 @@ class MultiClusterLogsFunction(BaseFunction):
                     timestamps,
                     label_selector,
                     all_containers,
-                    target_ns_list,
+                    namespace,
                     kubeconfig,
                     max_log_requests,
                 )
+                return asdict(
+                    MultiClusterLogsOutput(status=resp.get("status", "success"), details=resp)
+                )
             else:
-                return await self._get_logs_from_clusters(
+                resp = await self._get_logs_from_clusters(
                     clusters,
                     pod_name,
                     resource_selector,
@@ -129,9 +162,13 @@ class MultiClusterLogsFunction(BaseFunction):
                     target_ns_list,
                     kubeconfig,
                 )
+                return asdict(
+                    MultiClusterLogsOutput(status=resp.get("status", "success"), details=resp)
+                )
 
         except Exception as e:
-            return {"status": "error", "error": f"Failed to get logs: {str(e)}"}
+            err = {"error": f"Failed to get logs: {str(e)}"}
+            return asdict(MultiClusterLogsOutput(status="error", details=err))
 
     async def _resolve_target_namespaces(
         self,
