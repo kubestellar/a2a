@@ -1,8 +1,8 @@
 """Deploy-to function for selective cluster deployment in KubeStellar."""
 
 import asyncio
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
-from dataclasses import dataclass, asdict, field
 
 from src.shared.base_functions import BaseFunction
 
