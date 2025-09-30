@@ -1,12 +1,39 @@
 """Kubeconfig function implementation."""
 
 import os
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
 
 from ..base_functions import BaseFunction
+
+# --------------------------------------------------------------------------- #
+# Dataclasses
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class KubeconfigInput:
+    """Parameters accepted by get_kubeconfig.execute."""
+
+    kubeconfig_path: Optional[str] = None
+    context: Optional[str] = None
+    detail_level: str = "summary"
+
+
+@dataclass
+class KubeconfigOutput:
+    """Uniform envelope returned by get_kubeconfig."""
+
+    status: str
+    details: Dict[str, Any] = field(default_factory=dict)
+
+
+# --------------------------------------------------------------------------- #
+# Function
+# --------------------------------------------------------------------------- #
 
 
 class KubeconfigFunction(BaseFunction):
@@ -18,12 +45,7 @@ class KubeconfigFunction(BaseFunction):
             description="Get comprehensive details from kubeconfig file including available contexts, clusters, and users. Use this to understand your Kubernetes setup and available clusters for multi-cluster operations.",
         )
 
-    async def execute(
-        self,
-        kubeconfig_path: Optional[str] = None,
-        context: Optional[str] = None,
-        detail_level: str = "summary",
-    ) -> Dict[str, Any]:
+    async def execute(self, **kwargs: Any) -> Dict[str, Any]:
         """
         Execute the kubeconfig function.
 
@@ -35,6 +57,18 @@ class KubeconfigFunction(BaseFunction):
         Returns:
             Dictionary containing kubeconfig details
         """
+        # ---------------------------------------------------------------
+        # 1. Build typed input object & unpack
+        # ---------------------------------------------------------------
+        params = KubeconfigInput(**kwargs)
+        kubeconfig_path = params.kubeconfig_path
+        context = params.context
+        detail_level = params.detail_level
+
+        # ---------------------------------------------------------------
+        # 2. Original implementation (mostly unchanged)
+        # ---------------------------------------------------------------
+
         # Determine kubeconfig path
         if not kubeconfig_path:
             kubeconfig_path = os.environ.get("KUBECONFIG")
@@ -43,10 +77,11 @@ class KubeconfigFunction(BaseFunction):
 
         # Check if file exists
         if not os.path.exists(kubeconfig_path):
-            return {
+            err = {
                 "error": f"Kubeconfig file not found at: {kubeconfig_path}",
                 "suggestion": "Please ensure kubectl is configured or specify a valid kubeconfig path",
             }
+            return asdict(KubeconfigOutput(status="error", details=err))
 
         try:
             # Load kubeconfig
@@ -84,13 +119,14 @@ class KubeconfigFunction(BaseFunction):
                     self._get_context_details(kubeconfig, ctx) for ctx in contexts
                 ]
 
-            return result
+            return asdict(KubeconfigOutput(status="success", details=result))
 
         except Exception as e:
-            return {
+            err = {
                 "error": f"Failed to parse kubeconfig: {str(e)}",
                 "kubeconfig_path": kubeconfig_path,
             }
+            return asdict(KubeconfigOutput(status="error", details=err))
 
     def _get_context_details(self, kubeconfig: Dict, context: Dict) -> Dict[str, Any]:
         """Get details for a specific context."""
