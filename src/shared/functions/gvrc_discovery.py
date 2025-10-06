@@ -101,7 +101,9 @@ class GVRCDiscoveryFunction(BaseFunction):
             clusters = await self._discover_clusters(kubeconfig, remote_context)
             if not clusters:
                 err = {"error": "No clusters discovered"}
-                return asdict(GVRCDiscoveryOutput(status="error", details=err))
+                out = GVRCDiscoveryOutput(status="error", details=err)
+                # Back-compat: expose detail keys at top level, too
+                return {"status": out.status, **out.details}
 
             # Discover resources and namespaces across all clusters
             results = {}
@@ -135,11 +137,13 @@ class GVRCDiscoveryFunction(BaseFunction):
                 "discovery_results": summary,
             }
             status = "success" if success_count > 0 else "error"
-            return asdict(GVRCDiscoveryOutput(status=status, details=final))
+            out = GVRCDiscoveryOutput(status=status, details=final)
+            return {"status": out.status, **out.details}
 
         except Exception as e:
             err = {"error": f"Failed to discover GVRC: {str(e)}"}
-            return asdict(GVRCDiscoveryOutput(status="error", details=err))
+            out = GVRCDiscoveryOutput(status="error", details=err)
+            return {"status": out.status, **out.details}
 
     async def _discover_cluster_gvrc(
         self,
