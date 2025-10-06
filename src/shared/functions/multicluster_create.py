@@ -7,8 +7,6 @@ from typing import Any, Dict, List, Optional
 from ..base_functions import BaseFunction
 
 
-
-
 @dataclass
 class MultiClusterCreateInput:
     """All parameters accepted by multicluster_create.execute."""
