@@ -94,7 +94,7 @@ class NamespaceUtilsFunction(BaseFunction):
             # Discover clusters
             clusters = await self._discover_clusters(kubeconfig, remote_context)
             if not clusters:
-                return asdict(NamespaceUtilsOutput(status="error", details={"error": "No clusters discovered"}))
+                return {"status": "error", "error": "No clusters discovered"}
 
             # Execute operation across clusters
             results = {}

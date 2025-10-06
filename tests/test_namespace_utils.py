@@ -108,9 +108,9 @@ class TestNamespaceUtilsFunction:
                 result = await namespace_function.execute(operation="list")
 
                 assert result["status"] == "success"
-                assert result["operation"] == "list"
-                assert result["clusters_total"] == 2
-                assert result["clusters_succeeded"] == 2
+                assert result["details"]["operation"] == "list"
+                assert result["details"]["clusters_total"] == 2
+                assert result["details"]["clusters_succeeded"] == 2
 
     @pytest.mark.asyncio
     async def test_list_namespaces(
@@ -336,7 +336,7 @@ class TestNamespaceUtilsFunction:
             # The operation should fail when no clusters succeed
             assert result["status"] == "error" or result["clusters_succeeded"] == 0
             assert (
-                result["clusters_failed"] == 2
+                result["details"]["clusters_failed"] == 2
             )  # Both clusters should fail with unsupported operation
 
     @pytest.mark.asyncio
