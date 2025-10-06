@@ -81,8 +81,6 @@ class MultiClusterLogsFunction(BaseFunction):
             all_namespaces = params.all_namespaces
             namespace_selector = params.namespace_selector
             target_namespaces = params.target_namespaces
-            resource_types = params.resource_types
-            api_version = params.api_version  # kept for potential future use
             kubeconfig = params.kubeconfig
             remote_context = params.remote_context
             max_log_requests = params.max_log_requests
