@@ -1,7 +1,7 @@
 """Kubeconfig function implementation."""
 
 import os
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -31,9 +31,6 @@ class KubeconfigOutput:
     details: Dict[str, Any] = field(default_factory=dict)
 
 
-
-
-
 class KubeconfigFunction(BaseFunction):
     """Function to get details from kubeconfig file."""
 
@@ -61,8 +58,6 @@ class KubeconfigFunction(BaseFunction):
         context = params.context
         detail_level = params.detail_level
 
-
-
         # Determine kubeconfig path
         if not kubeconfig_path:
             kubeconfig_path = os.environ.get("KUBECONFIG")
@@ -75,7 +70,9 @@ class KubeconfigFunction(BaseFunction):
                 "error": f"Kubeconfig file not found at: {kubeconfig_path}",
                 "suggestion": "Please ensure kubectl is configured or specify a valid kubeconfig path",
             }
-            return asdict(KubeconfigOutput(status="error", details=err))
+            out = KubeconfigOutput(status="error", details=err)
+            # Back-compat: expose detail keys at top level, too
+            return {"status": out.status, **out.details}
 
         try:
             # Load kubeconfig
@@ -113,14 +110,16 @@ class KubeconfigFunction(BaseFunction):
                     self._get_context_details(kubeconfig, ctx) for ctx in contexts
                 ]
 
-            return asdict(KubeconfigOutput(status="success", details=result))
+            out = KubeconfigOutput(status="success", details=result)
+            return {"status": out.status, **out.details}
 
         except Exception as e:
             err = {
                 "error": f"Failed to parse kubeconfig: {str(e)}",
                 "kubeconfig_path": kubeconfig_path,
             }
-            return asdict(KubeconfigOutput(status="error", details=err))
+            out = KubeconfigOutput(status="error", details=err)
+            return {"status": out.status, **out.details}
 
     def _get_context_details(self, kubeconfig: Dict, context: Dict) -> Dict[str, Any]:
         """Get details for a specific context."""
