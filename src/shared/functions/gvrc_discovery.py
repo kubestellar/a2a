@@ -1,7 +1,7 @@
 """GVRC (Group, Version, Resource, Category) discovery utilities for KubeStellar."""
 
 import asyncio
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from ..base_functions import BaseFunction
