@@ -12,7 +12,7 @@ presubmits:
             - |
               # Install uv package manager
               curl -LsSf https://astral.sh/uv/install.sh | sh
-              export PATH="/root/.cargo/bin:$PATH"
+              export PATH="/root/.local/bin:$PATH"
               
               # Install dependencies
               uv sync --dev
@@ -30,14 +30,9 @@ presubmits:
     clone_uri: 'https://github.com/kubestellar/a2a'
     spec:
       containers:
-        - image: python:3.12
-          command:
-            - /bin/bash
-            - -c
-            - |
               # Install uv package manager
               curl -LsSf https://astral.sh/uv/install.sh | sh
-              export PATH="/root/.cargo/bin:$PATH"
+              export PATH="/root/.local/bin:$PATH"
               
               # Install dependencies
               uv sync --dev
@@ -62,7 +57,7 @@ presubmits:
             - |
               # Install uv package manager
               curl -LsSf https://astral.sh/uv/install.sh | sh
-              export PATH="/root/.cargo/bin:$PATH"
+              export PATH="/root/.local/bin:$PATH"
               
               # Install dependencies
               uv sync --dev
@@ -74,6 +69,10 @@ presubmits:
               # Check formatting with black
               echo "Checking formatting with black..."
               uv run black src/ tests/ --check --diff
+
+              # Check import sorting with isort
+              echo "Checking import sorting with isort..."
+              uv run isort --check-only src/ tests/
               
               # Type check with mypy (non-blocking)
               echo "Type checking with mypy..."
