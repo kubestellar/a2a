@@ -23,19 +23,19 @@ presubmits:
             requests:
               memory: 2Gi
               cpu: 1
-
+              ephemeral-storage: 4Gi
+  
   - name: pull-kubestellar-a2a-verify-py312
     always_run: true
     decorate: true
     clone_uri: 'https://github.com/kubestellar/a2a'
     spec:
       containers:
-      - image: python:3.12
+        - image: python:3.12
           command:
             - /bin/bash
             - -c
             - |
-
               # Install uv package manager
               curl -LsSf https://astral.sh/uv/install.sh | sh
               export PATH="/root/.local/bin:$PATH"
@@ -49,7 +49,8 @@ presubmits:
             requests:
               memory: 2Gi
               cpu: 1
-
+              ephemeral-storage: 4Gi
+  
   - name: pull-kubestellar-a2a-lint
     always_run: true
     decorate: true
@@ -75,7 +76,7 @@ presubmits:
               # Check formatting with black
               echo "Checking formatting with black..."
               uv run black src/ tests/ --check --diff
-
+              
               # Check import sorting with isort
               echo "Checking import sorting with isort..."
               uv run isort --check-only src/ tests/
@@ -86,4 +87,5 @@ presubmits:
           resources:
             requests:
               memory: 1Gi
-              cpu: 500m
+              cpu: 1
+              ephemeral-storage: 4Gi
