@@ -30,6 +30,11 @@ presubmits:
     clone_uri: 'https://github.com/kubestellar/a2a'
     spec:
       containers:
+      - image: python:3.12
+          command:
+            - /bin/bash
+            - -c
+            - |
               # Install uv package manager
               curl -LsSf https://astral.sh/uv/install.sh | sh
               export PATH="/root/.local/bin:$PATH"
