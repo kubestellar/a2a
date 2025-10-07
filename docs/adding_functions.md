@@ -19,7 +19,7 @@ Create a new file in `src/shared/functions/` for your function:
 ```python
 # src/shared/functions/my_function.py
 from typing import Any, Dict
-from ..base_functions import BaseFunction
+from src.shared.base_functions import BaseFunction
 
 
 class MyFunction(BaseFunction):
@@ -225,7 +225,7 @@ Here's a complete example of a function that lists files in a directory:
 import os
 from pathlib import Path
 from typing import Any, Dict, List
-from ..base_functions import BaseFunction
+from src.shared.base_functions import BaseFunction
 
 
 class ListFilesFunction(BaseFunction):
