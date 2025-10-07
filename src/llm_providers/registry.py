@@ -2,7 +2,7 @@
 
 from typing import Dict, Optional, Type
 
-from .base import BaseLLMProvider, ProviderConfig
+from src.llm_providers.base import BaseLLMProvider, ProviderConfig
 
 _provider_registry: Dict[str, Type[BaseLLMProvider]] = {}
 _provider_instances: Dict[str, BaseLLMProvider] = {}

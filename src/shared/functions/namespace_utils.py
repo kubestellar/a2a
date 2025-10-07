@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from ..base_functions import BaseFunction
+from src.shared.base_functions import BaseFunction
 
 
 @dataclass

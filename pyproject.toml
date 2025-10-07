@@ -30,7 +30,7 @@ dev = [
 ]
 
 [project.scripts]
-kubestellar = "src.a2a.cli:main"
+kubestellar = "src.cli:main"
 kubestellar-mcp = "src.mcp.server:main"
 
 [build-system]

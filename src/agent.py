@@ -13,16 +13,16 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 
-from ..llm_providers import (
+from src.llm_providers import (
     BaseLLMProvider,
     LLMMessage,
     MessageRole,
     ProviderConfig,
     get_provider,
 )
-from ..llm_providers.config import get_config_manager
-from ..shared.base_functions import function_registry
-from ..shared.functions import initialize_functions
+from src.llm_providers.config import get_config_manager
+from src.shared.base_functions import function_registry
+from src.shared.functions import initialize_functions
 
 
 class AgentChat:

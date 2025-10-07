@@ -119,7 +119,7 @@ Most contributions here are UI and docs. Please:
 
 ## 📜 Licensing
 
-This project is [Apache 2.0 licensed](https://github.com/kubestellar/a2a/LICENSE).
+This project is [Apache 2.0 licensed](https://github.com/kubestellar/a2a/blob/main/LICENSE).
 By contributing, you agree to the [Developer Certificate of Origin (DCO)](https://github.com/kubestellar/a2a/DCO).
 
 

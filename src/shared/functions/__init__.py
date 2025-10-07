@@ -1,15 +1,15 @@
 """Function implementations."""
 
-from ..base_functions import function_registry
-from .deploy_to import DeployToFunction
-from .get_cluster_labels import GetClusterLabelsFunction
-from .gvrc_discovery import GVRCDiscoveryFunction
-from .helm_deploy import HelmDeployFunction
-from .kubeconfig import KubeconfigFunction
-from .kubestellar_management import KubeStellarManagementFunction
-from .multicluster_create import MultiClusterCreateFunction
-from .multicluster_logs import MultiClusterLogsFunction
-from .namespace_utils import NamespaceUtilsFunction
+from src.shared.base_functions import function_registry
+from src.shared.functions.deploy_to import DeployToFunction
+from src.shared.functions.get_cluster_labels import GetClusterLabelsFunction
+from src.shared.functions.gvrc_discovery import GVRCDiscoveryFunction
+from src.shared.functions.helm_deploy import HelmDeployFunction
+from src.shared.functions.kubeconfig import KubeconfigFunction
+from src.shared.functions.kubestellar_management import KubeStellarManagementFunction
+from src.shared.functions.multicluster_create import MultiClusterCreateFunction
+from src.shared.functions.multicluster_logs import MultiClusterLogsFunction
+from src.shared.functions.namespace_utils import NamespaceUtilsFunction
 
 
 def initialize_functions():

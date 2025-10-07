@@ -9,7 +9,7 @@ import json
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
-from ..base_functions import BaseFunction
+from src.shared.base_functions import BaseFunction
 
 
 @dataclass
