@@ -3,7 +3,7 @@
 import asyncio
 import json
 import sys
-from typing import Any, Dict, List, Optional, Awaitable, TypeVar
+from typing import Any, Awaitable, Dict, List, Optional, TypeVar
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import FormattedText
