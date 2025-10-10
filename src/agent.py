@@ -3,8 +3,9 @@
 import asyncio
 import json
 import sys
-from typing import Any, Dict, List, Optional
 import time
+from typing import Any, Dict, List, Optional
+
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.history import FileHistory
@@ -23,7 +24,6 @@ from src.llm_providers import (
 from src.llm_providers.config import get_config_manager
 from src.shared.base_functions import function_registry
 from src.shared.functions import initialize_functions
-
 
 
 class AgentChat:
