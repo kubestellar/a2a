@@ -3,6 +3,7 @@
 import asyncio
 import json
 import sys
+import time
 from typing import Any, Dict, List, Optional
 
 from prompt_toolkit import PromptSession
@@ -103,17 +104,21 @@ class AgentChat:
             ]
         )
 
-    async def _execute_function(self, function_name: str, args: Dict[str, Any]) -> str:
+    async def _execute_function(
+        self, function_name: str, args: Dict[str, Any]
+    ) -> tuple[str, float]:
         """Execute a KubeStellar function."""
         function = function_registry.get(function_name)
         if not function:
-            return f"Error: Unknown function '{function_name}'"
+            return f"Error: Unknown function '{function_name}'", 0.0
 
         try:
-            result = await function.execute(**args)
-            return json.dumps(result, indent=2)
+            start = time.perf_counter() 
+            result_dict = await function.execute(**args)
+            elapsed = time.perf_counter() - start
+            return json.dumps(result_dict, indent=2), elapsed
         except Exception as e:
-            return f"Error executing {function_name}: {str(e)}"
+            return f"Error executing {function_name}: {str(e)}", 0.0
 
     def _prepare_tools(self) -> List[Dict[str, Any]]:
         """Prepare available tools for the LLM."""
@@ -218,16 +223,18 @@ class AgentChat:
                         with self.console.status(
                             f"[dim]⚙️  Executing: {tool_call.name}[/dim]", spinner="dots"
                         ):
-                            result = await self._execute_function(
+                            result, elapsed = await self._execute_function(
                                 tool_call.name, tool_call.arguments
                             )
+
                         tool_results.append(
                             {"call_id": tool_call.id, "content": result}
                         )
 
-                        # Display completion
+                        # Display completion with duration
                         self.console.print(
-                            f"[green]✓[/green] [dim]Completed: {tool_call.name}[/dim]"
+                            f"[green]✓[/green] [dim]Completed: {tool_call.name} "
+                            f"({elapsed:.3f}s)[/dim]"
                         )
 
                 # If we have tool results, we need to get AI's response to process the data
