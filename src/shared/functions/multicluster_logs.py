@@ -55,10 +55,21 @@ class MultiClusterLogsFunction(BaseFunction):
         Aggregate logs from containers across multiple clusters.
 
         Args:
-            (See MultiClusterLogsInput dataclass for full arguments)
+            pod_name (str): Name of the pod to get logs from.
+            resource_selector (str): Resource selector in TYPE/NAME format (e.g., deployment/nginx).
+            label_selector (str): Label selector to filter pods (e.g., app=nginx).
+            container (str): Container name to get logs from.
+            follow (bool): Stream logs continuously (uses concurrent streaming).
+            previous (bool): Get logs from previous terminated container.
+            tail (int): Number of recent log lines to display (-1 for all).
+            since_seconds (int): Only return logs newer than relative duration in seconds.
+            namespace (str): Target namespace (or empty for current context/default).
+            all_namespaces (bool): Get logs from pods across all namespaces.
+            max_log_requests (int): Maximum number of concurrent log streams/requests.
+            kubeconfig (str): Path to kubeconfig file.
 
         Returns:
-            Dictionary with logs from all clusters
+            Dictionary with logs from all clusters.
         """
         try:
 
