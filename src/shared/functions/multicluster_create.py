@@ -1,9 +1,40 @@
 """Multi-cluster create function for KubeStellar."""
 
 import asyncio
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
 from src.shared.base_functions import BaseFunction
+
+
+@dataclass
+class MultiClusterCreateInput:
+    """All parameters accepted by multicluster_create.execute."""
+
+    resource_type: str = ""
+    resource_name: str = ""
+    filename: str = ""
+    image: str = ""
+    replicas: int = 1
+    port: int = 0
+    namespace: str = ""
+    all_namespaces: bool = False
+    namespace_selector: str = ""
+    target_namespaces: Optional[List[str]] = None
+    resource_filter: str = ""
+    api_version: str = ""
+    kubeconfig: str = ""
+    remote_context: str = ""
+    dry_run: str = "none"
+    labels: Optional[Dict[str, str]] = None
+
+
+@dataclass
+class MultiClusterCreateOutput:
+    """Uniform envelope returned by multicluster_create."""
+
+    status: str
+    details: Dict[str, Any] = field(default_factory=dict)
 
 
 class MultiClusterCreateFunction(BaseFunction):
@@ -15,70 +46,68 @@ class MultiClusterCreateFunction(BaseFunction):
             description="Create and deploy Kubernetes workloads (deployments, services, configmaps) across all clusters simultaneously. Use this for global resource creation that should appear on every cluster in your KubeStellar fleet. For targeted deployment to specific clusters, use deploy_to instead.",
         )
 
-    async def execute(
-        self,
-        resource_type: str = "",
-        resource_name: str = "",
-        filename: str = "",
-        image: str = "",
-        replicas: int = 1,
-        port: int = 0,
-        namespace: str = "",
-        all_namespaces: bool = False,
-        namespace_selector: str = "",
-        target_namespaces: List[str] = None,
-        resource_filter: str = "",
-        api_version: str = "",
-        kubeconfig: str = "",
-        remote_context: str = "",
-        dry_run: str = "none",
-        labels: Dict[str, str] = None,
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
+    async def execute(self, **kwargs: Any) -> Dict[str, Any]:
         """
         Create resources across multiple Kubernetes clusters.
 
         Args:
-            resource_type: Type of resource to create (deployment, service, etc.)
-            resource_name: Name of the resource
-            filename: Path to YAML/JSON file to create from
-            image: Container image for deployments
-            replicas: Number of replicas for deployments
-            port: Port to expose for deployments
-            namespace: Target namespace (if not using all_namespaces or target_namespaces)
-            all_namespaces: Create resources across all namespaces
-            namespace_selector: Namespace label selector for targeting
-            target_namespaces: Specific list of target namespaces
-            resource_filter: Filter resources by name pattern (for GVRC discovery)
-            api_version: Specific API version to use for resource creation
-            kubeconfig: Path to kubeconfig file
-            remote_context: Remote context for cluster discovery
-            dry_run: Dry run mode (none, client, server)
-            labels: Labels to apply to resources
+            filename (str): Path to a YAML/JSON file containing resource definitions.
+            resource_type (str): Type of resource to create (e.g., deployment, service). Required if `filename` is empty.
+            resource_name (str): Name of the resource to create. Required if `resource_type` is specified.
+            image (str): Container image for deployments.
+            replicas (int): Number of replicas for deployments (default 1).
+            port (int): Port to expose for deployments (default 0).
+            namespace (str): Target namespace.
+            all_namespaces (bool): Create resources across all namespaces.
+            target_namespaces (List[str]): Specific list of namespaces to target.
+            dry_run (str): Dry run mode ('none', 'client', 'server').
+            labels (Dict[str, str]): Labels to apply to the created resources.
+            kubeconfig (str): Path to kubeconfig file.
 
         Returns:
             Dictionary with creation results from all clusters
         """
         try:
+
+            params = MultiClusterCreateInput(**kwargs)
+
+            resource_type = params.resource_type
+            resource_name = params.resource_name
+            filename = params.filename
+            image = params.image
+            replicas = params.replicas
+            port = params.port
+            namespace = params.namespace
+            all_namespaces = params.all_namespaces
+            namespace_selector = params.namespace_selector
+            target_namespaces = params.target_namespaces
+            api_version = params.api_version
+            kubeconfig = params.kubeconfig
+            remote_context = params.remote_context
+            dry_run = params.dry_run
+            labels = params.labels
+
             # Validate inputs
             if not filename and not resource_type:
-                return {
-                    "status": "error",
+                err = {
                     "error": "Either filename or resource_type must be specified",
                 }
+                return asdict(MultiClusterCreateOutput(status="error", details=err))
 
             if resource_type and not resource_name:
-                return {
-                    "status": "error",
+                err = {
                     "error": "resource_name is required when resource_type is specified",
                 }
+                return asdict(MultiClusterCreateOutput(status="error", details=err))
 
             # Discover clusters
             clusters = await self._discover_clusters(kubeconfig, remote_context)
             if not clusters:
-                return {"status": "error", "error": "No clusters discovered"}
+                err = {"error": "No clusters discovered"}
+                return asdict(MultiClusterCreateOutput(status="error", details=err))
 
             # Show binding policy recommendation for resource creation
+            warning_msg: Optional[str] = None
             if resource_type and not filename:
                 warning_msg = (
                     "WARNING: Direct resource creation across multiple clusters is not recommended. "
@@ -122,17 +151,19 @@ class MultiClusterCreateFunction(BaseFunction):
             success_count = sum(1 for r in results.values() if r["status"] == "success")
             total_count = len(results)
 
-            return {
-                "status": "success" if success_count > 0 else "error",
+            final = {
                 "clusters_total": total_count,
                 "clusters_succeeded": success_count,
                 "clusters_failed": total_count - success_count,
                 "results": results,
-                "warning": warning_msg if resource_type and not filename else None,
+                "warning": warning_msg,
             }
+            status = "success" if success_count > 0 else "error"
+            return asdict(MultiClusterCreateOutput(status=status, details=final))
 
         except Exception as e:
-            return {"status": "error", "error": f"Failed to create resources: {str(e)}"}
+            err = {"error": f"Failed to create resources: {str(e)}"}
+            return asdict(MultiClusterCreateOutput(status="error", details=err))
 
     async def _discover_clusters(
         self, kubeconfig: str, remote_context: str
