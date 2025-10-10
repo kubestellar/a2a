@@ -51,7 +51,18 @@ class MultiClusterCreateFunction(BaseFunction):
         Create resources across multiple Kubernetes clusters.
 
         Args:
-            (See MultiClusterCreateInput dataclass for full arguments)
+            filename (str): Path to a YAML/JSON file containing resource definitions.
+            resource_type (str): Type of resource to create (e.g., deployment, service). Required if `filename` is empty.
+            resource_name (str): Name of the resource to create. Required if `resource_type` is specified.
+            image (str): Container image for deployments.
+            replicas (int): Number of replicas for deployments (default 1).
+            port (int): Port to expose for deployments (default 0).
+            namespace (str): Target namespace.
+            all_namespaces (bool): Create resources across all namespaces.
+            target_namespaces (List[str]): Specific list of namespaces to target.
+            dry_run (str): Dry run mode ('none', 'client', 'server').
+            labels (Dict[str, str]): Labels to apply to the created resources.
+            kubeconfig (str): Path to kubeconfig file.
 
         Returns:
             Dictionary with creation results from all clusters
