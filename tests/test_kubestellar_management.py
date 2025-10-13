@@ -53,7 +53,7 @@ class TestKubeStellarManagementFunction:
             result = await kubestellar_function.execute()
 
             assert result["status"] == "error"
-            assert "no kubestellar clusters discovered" in result["error"].lower()
+            assert "no kubestellar clusters discovered" in result["details"]["error"].lower()
 
     @pytest.mark.asyncio
     async def test_topology_map_operation(self, kubestellar_function):
@@ -87,13 +87,14 @@ class TestKubeStellarManagementFunction:
             mock_discover.return_value = mock_clusters
 
             result = await kubestellar_function.execute(operation="topology_map")
-
+            
             assert result["status"] == "success"
-            assert result["operation"] == "topology_map"
-            assert len(result["wds_clusters"]) == 1
-            assert len(result["wec_clusters"]) == 1
-            assert result["wds_clusters"][0]["name"] == "wds-test"
-            assert result["wec_clusters"][0]["name"] == "wec-test"
+            details = result["details"]
+            assert details["operation"] == "topology_map"
+            assert len(details["wds_clusters"]) == 1
+            assert len(details["wec_clusters"]) == 1
+            assert details["wds_clusters"][0]["name"] == "wds-test"
+            assert details["wec_clusters"][0]["name"] == "wec-test"
 
     @pytest.mark.asyncio
     async def test_deep_search_operation(self, kubestellar_function):
@@ -164,10 +165,11 @@ class TestKubeStellarManagementFunction:
             result = await kubestellar_function.execute(operation="deep_search")
 
             assert result["status"] == "success"
-            assert result["operation"] == "deep_search"
-            assert result["clusters_analyzed"] == 1
-            assert "resource_summary" in result
-            assert result["cluster_results"]["cluster1"]["status"] == "success"
+            details = result["details"]
+            assert details["operation"] == "deep_search"
+            assert details["clusters_analyzed"] == 1
+            assert "resource_summary" in details
+            assert details["cluster_results"]["cluster1"]["status"] == "success"
 
     @pytest.mark.asyncio
     async def test_classify_kubestellar_space_wds(self, kubestellar_function):
@@ -560,7 +562,7 @@ class TestKubeStellarManagementFunction:
             result = await kubestellar_function.execute(operation="invalid_operation")
 
             assert result["status"] == "error"
-            assert "unsupported operation" in result["error"].lower()
+            assert "unsupported operation" in result["details"]["error"].lower()
 
     @pytest.mark.asyncio
     async def test_execute_exception_handling(self, kubestellar_function):
@@ -574,7 +576,7 @@ class TestKubeStellarManagementFunction:
 
             assert result["status"] == "error"
             assert (
-                "failed to execute kubestellar management operation"
-                in result["error"].lower()
+                "failed to execute kubestellar management"
+                in result["details"]["error"].lower()
             )
-            assert "test error" in result["error"].lower()
+            assert "test error" in result["details"]["error"].lower()
