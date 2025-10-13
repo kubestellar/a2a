@@ -4,7 +4,7 @@ import asyncio
 import json
 import sys
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Awaitable, Dict, List, Optional, TypeVar
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import FormattedText
@@ -25,6 +25,7 @@ from src.llm_providers.config import get_config_manager
 from src.shared.base_functions import function_registry
 from src.shared.functions import initialize_functions
 
+T = TypeVar('T')
 
 class AgentChat:
     """Interactive agent chat interface."""
@@ -35,6 +36,13 @@ class AgentChat:
         self.config_manager = get_config_manager()
         self.messages: List[LLMMessage] = []
         self.provider: Optional[BaseLLMProvider] = None
+        # Ensure stdin is non-blocking for prompt-toolkit and our escape logic
+        if sys.stdin and sys.stdin.isatty():
+            import termios
+            import tty
+            self._old_tty_settings = termios.tcgetattr(sys.stdin)
+            tty.setcbreak(sys.stdin.fileno())
+
         self.session = PromptSession(
             history=FileHistory(str(self.config_manager.config_dir / "chat_history"))
         )
@@ -58,6 +66,60 @@ class AgentChat:
                 "provider": "#888888",
             }
         )
+
+    async def _wait_for_escape(self) -> None:
+        """
+        Block until the user presses the Escape key.
+        Runs in the event-loop, uses add_reader so it works while
+        other coroutines are running.
+        """
+        if not sys.stdin.isatty():
+            await asyncio.Future() # block indefinitely if not a TTY
+            return
+
+        loop = asyncio.get_running_loop()
+        fut: asyncio.Future[None] = loop.create_future()
+
+        def _on_key_press() -> None:          # called by add_reader
+            # Non-blocking read
+            try:
+                ch = sys.stdin.read(1)            # read one raw byte
+                if ch == "\x1b":                  # ESC
+                    if not fut.done():
+                        fut.set_result(None)
+            except OSError:
+                # Handle case where read may fail (e.g., race condition on closing)
+                pass
+
+        loop.add_reader(sys.stdin.fileno(), _on_key_press)
+        try:
+            await fut                         # wait until ESC pressed
+        finally:
+            loop.remove_reader(sys.stdin.fileno())
+
+    async def _run_with_cancel(self, coro: Awaitable[T]) -> Optional[T]:
+        """
+        Run *coro* and listen for ESC simultaneously.
+        If ESC is pressed first, cancel the task and return None.
+        Otherwise return the coroutine’s result.
+        """
+        task = asyncio.create_task(coro)
+        esc  = asyncio.create_task(self._wait_for_escape())
+
+        done, _ = await asyncio.wait({task, esc},
+                                     return_when=asyncio.FIRST_COMPLETED)
+
+        if esc in done:                       # user hit ESC
+            task.cancel()
+            self.console.print("[yellow]⏹  Operation cancelled (ESC)[/yellow]")
+            try:
+                await task                    # swallow CancelledError
+            except asyncio.CancelledError:
+                pass
+            return None
+        else:                                 # task finished normally
+            esc.cancel()
+            return await task
 
     def _setup_provider(self, provider_name: Optional[str] = None):
         """Set up LLM provider."""
@@ -105,13 +167,11 @@ class AgentChat:
             ]
         )
 
-    async def _execute_function(
-        self, function_name: str, args: Dict[str, Any]
-    ) -> tuple[str, float]:
+    async def _execute_function(self, function_name: str, args: Dict[str, Any]) -> tuple[str, float]:
         """Execute a KubeStellar function."""
         function = function_registry.get(function_name)
         if not function:
-            return f"Error: Unknown function '{function_name}'", 0.0
+            return f"Error: Unknown function '{function_name}'",0.0
 
         try:
             start = time.perf_counter()
@@ -120,6 +180,7 @@ class AgentChat:
             return json.dumps(result_dict, indent=2), elapsed
         except Exception as e:
             return f"Error executing {function_name}: {str(e)}", 0.0
+
 
     def _prepare_tools(self) -> List[Dict[str, Any]]:
         """Prepare available tools for the LLM."""
@@ -210,11 +271,15 @@ class AgentChat:
         try:
             # Show processing indicator
             with self.console.status("[dim]🤔 Thinking...[/dim]", spinner="dots"):
-                response = await self.provider.generate(
-                    messages=conversation,
-                    tools=tools,  # Re-enable tool calling
-                    stream=False,  # TODO: Add streaming support
+                response = await self._run_with_cancel(
+                    self.provider.generate(
+                        messages=conversation,
+                        tools=tools, 
+                        stream=False,  
+                    )
                 )
+            if response is None:
+                return
 
             # Display thinking blocks
             self._display_thinking(response.thinking_blocks)
@@ -233,15 +298,17 @@ class AgentChat:
                         with self.console.status(
                             f"[dim]⚙️  Executing: {tool_call.name}[/dim]", spinner="dots"
                         ):
-                            result, elapsed = await self._execute_function(
-                                tool_call.name, tool_call.arguments
+                            result,elapsed = await self._run_with_cancel(
+                                self._execute_function(tool_call.name, tool_call.arguments)
                             )
-
+                        if result is None:        
+                            return
+                        
                         tool_results.append(
                             {"call_id": tool_call.id, "content": result}
                         )
 
-                        # Display completion with duration
+                        # Display completion
                         self.console.print(
                             f"[green]✓[/green] [dim]Completed: {tool_call.name} "
                             f"({elapsed:.3f}s)[/dim]"
@@ -280,9 +347,14 @@ class AgentChat:
                     with self.console.status(
                         "[dim]🤔 Analyzing results...[/dim]", spinner="dots"
                     ):
-                        follow_up_response = await self.provider.generate(
-                            messages=conversation, tools=tools, stream=False
+                        follow_up_response = await self._run_with_cancel(
+                            self.provider.generate(
+                                messages=conversation, tools=tools, stream=False
+                            )
                         )
+
+                    if follow_up_response is None:
+                        return
 
                     # Display thinking blocks from follow-up
                     self._display_thinking(follow_up_response.thinking_blocks)
@@ -541,6 +613,9 @@ For pod counts, respond like this:
             except Exception as e:
                 self.console.print(f"[red]Error: {e}[/red]")
 
+        if sys.stdin and sys.stdin.isatty():
+            import termios
+            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, self._old_tty_settings)
         # Goodbye
         self.console.print("\n[dim]Goodbye![/dim]")
 
