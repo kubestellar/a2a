@@ -24,6 +24,40 @@ class BaseFunction(ABC):
         pass
 
 
+class CreatePlanFunction(BaseFunction):
+    """A special function to create a plan of execution."""
+
+    def __init__(self):
+        super().__init__(
+            "create_plan",
+            "Creates a plan of steps to execute to fulfill the user's request. Use this when multiple steps are required.",
+        )
+
+    async def execute(self, **kwargs: Any) -> Dict[str, Any]:
+        """This function does not execute anything, it's a placeholder for the plan."""
+        return {"status": "plan created", "steps": kwargs.get("steps", [])}
+
+    def get_schema(self) -> Dict[str, Any]:
+        """Return the schema for the create_plan function."""
+        return {
+            "type": "object",
+            "properties": {
+                "steps": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "function_name": {"type": "string"},
+                            "arguments": {"type": "object"},
+                        },
+                        "required": ["function_name", "arguments"],
+                    },
+                }
+            },
+            "required": ["steps"],
+        }
+
+
 class FunctionRegistry:
     """Registry to manage all available functions."""
 
@@ -64,3 +98,6 @@ def async_to_sync(func: Callable) -> Callable:
 
 # Global registry instance
 function_registry = FunctionRegistry()
+
+# Register the create_plan function
+function_registry.register(CreatePlanFunction())
