@@ -1,4 +1,4 @@
-# KubeStellar A2A Agent
+# KubeStellar A2A
 
 📚 **[View Full Documentation](https://kubestellar.github.io/a2a/)**
 

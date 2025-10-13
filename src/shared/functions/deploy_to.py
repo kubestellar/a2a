@@ -1,9 +1,41 @@
 """Deploy-to function for selective cluster deployment in KubeStellar."""
 
 import asyncio
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
-from ..base_functions import BaseFunction
+from src.shared.base_functions import BaseFunction
+
+
+@dataclass
+class DeployToInput:
+    """All parameters accepted by `deploy_to` bundled in a single object."""
+
+    target_clusters: Optional[List[str]] = None
+    cluster_labels: Optional[List[str]] = None
+    filename: str = ""
+    resource_type: str = ""
+    resource_name: str = ""
+    image: str = ""
+    cluster_images: Optional[List[str]] = None
+    namespace: str = ""
+    all_namespaces: bool = False
+    namespace_selector: str = ""
+    target_namespaces: Optional[List[str]] = None
+    resource_filter: str = ""
+    api_version: str = ""
+    kubeconfig: str = ""
+    remote_context: str = ""
+    dry_run: bool = False
+    list_clusters: bool = False
+
+
+@dataclass
+class DeployToOutput:
+    """Standardised response from `deploy_to` so the agent can rely on shape."""
+
+    status: str
+    details: Dict[str, Any] = field(default_factory=dict)
 
 
 class DeployToFunction(BaseFunction):
@@ -15,74 +47,59 @@ class DeployToFunction(BaseFunction):
             description="Deploy resources to specific named clusters or clusters matching labels (selective deployment). Perfect for edge deployments, staging environments, or when you need workloads only on certain clusters. Use list_clusters=True to see available clusters first. Alternative to multicluster_create for targeted placement.",
         )
 
-    async def execute(
-        self,
-        target_clusters: List[str] = None,
-        cluster_labels: List[str] = None,
-        filename: str = "",
-        resource_type: str = "",
-        resource_name: str = "",
-        image: str = "",
-        cluster_images: List[str] = None,
-        namespace: str = "",
-        all_namespaces: bool = False,
-        namespace_selector: str = "",
-        target_namespaces: List[str] = None,
-        resource_filter: str = "",
-        api_version: str = "",
-        kubeconfig: str = "",
-        remote_context: str = "",
-        dry_run: bool = False,
-        list_clusters: bool = False,
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
+    async def execute(self, **kwargs: Any) -> Dict[str, Any]:
         """
-        Deploy resources to specific clusters.
-
-        Args:
-            target_clusters: Names of specific clusters to deploy to
-            cluster_labels: Label selectors for cluster targeting (key=value format)
-            filename: Path to YAML/JSON file to deploy
-            resource_type: Type of resource to create (when not using filename)
-            resource_name: Name of resource to create (when not using filename)
-            image: Global image override for deployments
-            cluster_images: Per-cluster image overrides (cluster=image format)
-            namespace: Target namespace for deployment (if not using all_namespaces or target_namespaces)
-            all_namespaces: Deploy resources across all namespaces
-            namespace_selector: Namespace label selector for targeting
-            target_namespaces: Specific list of target namespaces
-            resource_filter: Filter resources by name pattern (for GVRC discovery)
-            api_version: Specific API version to use for resource deployment
-            kubeconfig: Path to kubeconfig file
-            remote_context: Remote context for cluster discovery
-            dry_run: Show what would be deployed without doing it
-            list_clusters: List available clusters and their details
-
-        Returns:
-            Dictionary with deployment results or cluster list
+        Execute the deployment using a single `DeployToInput` bundle.
+        The agent should supply parameters that conform to that dataclass.
         """
+        # Build strongly-typed input object (the agent can create this directly)
+        params = DeployToInput(**kwargs)
+
+        # Unpack once for readability / minimal downstream changes
+        target_clusters = params.target_clusters
+        cluster_labels = params.cluster_labels
+        filename = params.filename
+        resource_type = params.resource_type
+        resource_name = params.resource_name
+        image = params.image
+        cluster_images = params.cluster_images
+        namespace = params.namespace
+        all_namespaces = params.all_namespaces
+        namespace_selector = params.namespace_selector
+        target_namespaces = params.target_namespaces
+        resource_filter = params.resource_filter
+        api_version = params.api_version
+        kubeconfig = params.kubeconfig
+        remote_context = params.remote_context
+        dry_run = params.dry_run
+        list_clusters = params.list_clusters
+        
         try:
             # Handle list clusters request
             if list_clusters:
-                return await self._list_available_clusters(kubeconfig, remote_context)
+                list_resp = await self._list_available_clusters(kubeconfig, remote_context)
+                return asdict(DeployToOutput(status=list_resp["status"], details=list_resp))
 
             # Validate inputs
             if not target_clusters and not cluster_labels:
-                return {
+                err = {
                     "status": "error",
                     "error": "Must specify either target_clusters or cluster_labels",
                 }
+                return asdict(DeployToOutput(status="error", details=err))
 
             if not filename and not (resource_type and resource_name):
-                return {
+                err = {
                     "status": "error",
                     "error": "Must specify either filename or both resource_type and resource_name",
                 }
+                return asdict(DeployToOutput(status="error", details=err))
 
             # Discover all available clusters
             all_clusters = await self._discover_clusters(kubeconfig, remote_context)
             if not all_clusters:
-                return {"status": "error", "error": "No clusters discovered"}
+                err = {"status": "error", "error": "No clusters discovered"}
+                return asdict(DeployToOutput(status="error", details=err))
 
             # Filter clusters based on selection criteria
             selected_clusters = self._filter_clusters(
@@ -90,14 +107,14 @@ class DeployToFunction(BaseFunction):
             )
 
             if not selected_clusters:
-                return {
+                err = {
                     "status": "error",
                     "error": "No clusters match the selection criteria",
                     "available_clusters": [
-                        {"name": c["name"], "context": c["context"]}
-                        for c in all_clusters
+                        {"name": c["name"], "context": c["context"]} for c in all_clusters
                     ],
                 }
+                return asdict(DeployToOutput(status="error", details=err))
 
             # Determine target namespaces
             target_ns_list = await self._resolve_target_namespaces(
@@ -124,13 +141,14 @@ class DeployToFunction(BaseFunction):
             }
 
             if dry_run:
-                return {
+                dry_resp = {
                     "status": "success",
                     "message": "DRY RUN - No actual deployment will occur",
                     "deployment_plan": deployment_plan,
                     "clusters_selected": len(selected_clusters),
                     "selected_clusters": selected_clusters,
                 }
+                return asdict(DeployToOutput(status="success", details=dry_resp))
 
             # Execute deployment on selected clusters
             results = await self._deploy_to_clusters(
@@ -147,20 +165,19 @@ class DeployToFunction(BaseFunction):
 
             success_count = sum(1 for r in results.values() if r["status"] == "success")
 
-            return {
-                "status": "success" if success_count > 0 else "error",
+            final_resp = {
                 "clusters_selected": len(selected_clusters),
                 "clusters_succeeded": success_count,
                 "clusters_failed": len(selected_clusters) - success_count,
                 "deployment_plan": deployment_plan,
                 "results": results,
             }
+            status = "success" if success_count > 0 else "error"
+            return asdict(DeployToOutput(status=status, details=final_resp))
 
         except Exception as e:
-            return {
-                "status": "error",
-                "error": f"Failed to deploy to clusters: {str(e)}",
-            }
+            err = {"status": "error", "error": f"Failed to deploy to clusters: {str(e)}"}
+            return asdict(DeployToOutput(status="error", details=err))
 
     async def _list_available_clusters(
         self, kubeconfig: str, remote_context: str

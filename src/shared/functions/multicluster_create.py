@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any, Dict, List, Optional
 
-from ..base_functions import BaseFunction
+from src.shared.base_functions import BaseFunction
 
 
 class MultiClusterCreateFunction(BaseFunction):
