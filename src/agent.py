@@ -38,6 +38,7 @@ class AgentChat:
         self.session = PromptSession(
             history=FileHistory(str(self.config_manager.config_dir / "chat_history"))
         )
+        self.plan: Optional[List[Dict[str, Any]]] = None
 
         # Initialize functions
         initialize_functions()
@@ -113,7 +114,7 @@ class AgentChat:
             return f"Error: Unknown function '{function_name}'", 0.0
 
         try:
-            start = time.perf_counter() 
+            start = time.perf_counter()
             result_dict = await function.execute(**args)
             elapsed = time.perf_counter() - start
             return json.dumps(result_dict, indent=2), elapsed
@@ -183,6 +184,10 @@ class AgentChat:
 
     async def _handle_message(self, user_input: str):
         """Handle a user message."""
+        if self.plan and user_input.lower() in ["yes", "y"]:
+            await self._execute_plan()
+            return
+
         # Add user message
         self.messages.append(LLMMessage(role=MessageRole.USER, content=user_input))
 
@@ -216,6 +221,11 @@ class AgentChat:
 
             # Handle tool calls
             if response.tool_calls:
+                if response.tool_calls[0].name == "create_plan":
+                    self.plan = response.tool_calls[0].arguments["steps"]
+                    self._present_plan()
+                    return
+
                 tool_results = []
                 for tool_call in response.tool_calls:
                     if tool_call.name:  # Only execute if function name is not empty
@@ -328,6 +338,10 @@ class AgentChat:
 ## Available Functions:
 {chr(10).join(functions_desc)}
 
+## Tool Usage Strategy:
+- **For simple tasks** that can be solved with a single function call, call the function directly. Do NOT create a plan.
+- **For complex tasks** that require multiple, sequential function calls, you MUST use the `create_plan` function. The plan should be a sequence of function calls to achieve the user's goal.
+
 ## Response Requirements:
 1. **Answer the exact question asked**
 2. **Use ONLY data from function results - never fabricate information**
@@ -352,6 +366,108 @@ For pod counts, respond like this:
 - If data shows namespaces only, state that pod count data is not available
 - Never guess or make up numbers
 - Present information clearly and concisely"""
+
+    def _present_plan(self):
+        """Present the execution plan to the user for approval."""
+        if not self.plan:
+            return
+
+        self.console.print("\n[bold]Execution Plan:[/bold]")
+        for i, step in enumerate(self.plan):
+            self.console.print(
+                f"  [cyan]{i+1}.[/cyan] [bold]{step['function_name']}[/bold]"
+            )
+            for key, value in step["arguments"].items():
+                self.console.print(f"     - {key}: {value}")
+        self.console.print("\nDo you want to execute this plan? (yes/no)")
+
+    async def _execute_plan(self):
+        """Execute the approved plan."""
+        if not self.plan:
+            return
+
+        tool_results = []
+        for i, step in enumerate(self.plan):
+            with self.console.status(
+                f"[dim]⚙️  Executing step {i+1}/{len(self.plan)}: {step['function_name']}[/dim]",
+                spinner="dots",
+            ):
+                result, elapsed = await self._execute_function(
+                    step["function_name"], step["arguments"]
+                )
+
+            # Check for errors
+            if result.strip().startswith("Error:"):
+                self.console.print(
+                    f"[red]✗[/red] [bold red]Error in step {i+1} ({step['function_name']}):[/bold red]"
+                )
+                self.console.print(f"[red]{result.strip()}[/red]")
+                self.console.print("[yellow]Plan execution aborted.[/yellow]")
+                self.plan = None  # Clear the plan
+                return
+
+            tool_results.append({"call_id": f"plan_step_{i}", "content": result})
+            self.console.print(
+                f"[green]✓[/green] [dim]Completed: {step['function_name']} "
+                f"({elapsed:.3f}s)[/dim]"
+            )
+
+            # Summarize and display the result of the step
+            with self.console.status(
+                "[dim]📝 Summarizing result...[/dim]", spinner="dots"
+            ):
+                summary = await self._summarize_result(step["function_name"], result)
+
+            self.console.print(
+                Panel(
+                    summary.strip(),
+                    title=f"Summary from {step['function_name']}",
+                    border_style="blue",
+                    padding=(1, 2),
+                    expand=False,
+                )
+            )
+
+        self.plan = None  # Clear the plan after execution
+
+        # Process the results
+        if tool_results:
+            self.console.print("[dim]📊 Processing data...[/dim]")
+            for tr in tool_results:
+                self.messages.append(
+                    LLMMessage(
+                        role=MessageRole.TOOL,
+                        content=tr["content"],
+                        tool_call_id=tr["call_id"],
+                    )
+                )
+
+            system_message = self._prepare_system_message()
+            conversation = [
+                LLMMessage(role=MessageRole.SYSTEM, content=system_message),
+                *self.messages,
+            ]
+            tools = self._prepare_tools()
+
+            with self.console.status(
+                "[dim]🤔 Analyzing results...[/dim]", spinner="dots"
+            ):
+                follow_up_response = await self.provider.generate(
+                    messages=conversation, tools=tools, stream=False
+                )
+
+            self._display_thinking(follow_up_response.thinking_blocks)
+
+            if follow_up_response.content:
+                self.console.print()
+                self.console.print(Markdown(follow_up_response.content))
+                self.messages.append(
+                    LLMMessage(
+                        role=MessageRole.ASSISTANT, content=follow_up_response.content
+                    )
+                )
+
+            self._display_token_usage(follow_up_response.usage)
 
     async def run(self):
         """Run the interactive chat loop."""
@@ -453,3 +569,33 @@ For pod counts, respond like this:
             self.console.print(f"[green]Switched to {provider_name}[/green]")
         except Exception as e:
             self.console.print(f"[red]Failed to switch provider: {e}[/red]")
+
+    async def _summarize_result(self, function_name: str, result: str) -> str:
+        """Summarize the result of a tool execution using the LLM."""
+        try:
+            prompt = f'''Please summarize the following JSON output from the `{function_name}` tool.
+Focus on the most important information for the user, such as success or failure, names of created resources, or key data points.
+Keep the summary concise and easy to read.
+
+Tool Output:
+```json
+{result}
+```'''
+            messages = [LLMMessage(role=MessageRole.USER, content=prompt)]
+
+            # We don't want the summarizer to call tools, so pass an empty list.
+            response = await self.provider.generate(
+                messages=messages, tools=[], stream=False
+            )
+
+            summary = response.content
+            if not summary:
+                return "Could not generate a summary."
+
+            # Also display token usage for this summary call
+            self._display_token_usage(response.usage)
+
+            return summary
+
+        except Exception as e:
+            return f"Error summarizing result: {e}"
