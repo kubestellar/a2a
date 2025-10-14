@@ -1,13 +1,30 @@
-# KubeStellar A2A Documentation Website
+<div align="center">
+<p align="center">
+  <img alt="KubeStellar Logo" width="250px" src="frontend/public/Kubestellar-logo.png" />
+</p>
+
+  
+  # KubeStellar A2A Documentation Website
+  
+  **A modern documentation site built with Docusaurus**
+  
+  [![Built with Docusaurus](https://img.shields.io/badge/Built%20with-Docusaurus-2e8555?style=flat-square&logo=docusaurus)](https://docusaurus.io/)
+  [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?style=flat-square&logo=node.js)](https://nodejs.org/)
+  [![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?style=flat-square&logo=github-actions)](https://github.com/features/actions)
+</div>
+
+---
+
+## 📖 About
 
 This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
 
-## Prerequisites
+## 🔧 Prerequisites
 
 - **Node.js 20+** (required for Mermaid diagrams)
 - npm or yarn
 
-## Installation
+## 📦 Installation
 
 ```bash
 npm install
@@ -15,7 +32,7 @@ npm install
 yarn
 ```
 
-## Local Development
+## 🚀 Local Development
 
 ```bash
 npm start
@@ -25,7 +42,7 @@ yarn start
 
 This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
 
-## Build
+## 🏗️ Build
 
 ```bash
 npm run build
@@ -35,7 +52,7 @@ yarn build
 
 This command generates static content into the `build` directory and can be served using any static contents hosting service.
 
-## Features
+## ✨ Features
 
 - **KubeStellar Branding**: Official logo and color scheme
 - **Mermaid Diagrams**: Interactive architecture visualizations
@@ -43,18 +60,26 @@ This command generates static content into the `build` directory and can be serv
 - **Responsive Design**: Works on all devices
 - **GitHub Actions**: Automatic deployment on main/dev branches
 
-## Deployment
+## 🚢 Deployment
 
 The documentation is automatically deployed via GitHub Actions when changes are pushed to the `main` or `dev` branches.
 
-Manual deployment using SSH:
+### Manual Deployment
+
+**Using SSH:**
 
 ```bash
 USE_SSH=true yarn deploy
 ```
 
-Manual deployment without SSH:
+**Without SSH:**
 
 ```bash
 GIT_USER=<Your GitHub username> yarn deploy
 ```
+
+---
+
+<div align="center">
+  Made with ❤️ by the KubeStellar Team
+</div>
