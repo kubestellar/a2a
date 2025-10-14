@@ -74,7 +74,7 @@ uv run kubestellar agent --provider openai
 
 ## MCP Server Setup
 
-Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+Add to MCP server (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
