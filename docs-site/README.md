@@ -1,6 +1,6 @@
 <div align="center">
 <p align="center">
-  <img alt="KubeStellar Logo" width="250px" src="frontend/public/Kubestellar-logo.png" />
+  <img alt="KubeStellar Logo" width="250px" src="https://avatars.githubusercontent.com/u/134407106?s=200&v=4" />
 </p>
 
   
