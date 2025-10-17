@@ -23,7 +23,7 @@
 }
 
 .botWindow {
-  background: var(--ifm-background-color);
+  background-color: white;
   color: var(--ifm-font-color-base);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
@@ -34,6 +34,22 @@
   margin-top: 16px;
   overflow: hidden;
   border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+[data-theme='dark'] .botWindow {
+  background-color: var(--ifm-background-surface-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .botWindow {
+    background-color: var(--ifm-background-surface-color);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .botWindow {
+    background-color: white;
+  }
 }
 
 .botHeader {
