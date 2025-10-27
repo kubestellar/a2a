@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import styles from "./ProjectBot.module.css";
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
 interface FAQItem {
   q: string;
@@ -100,6 +101,7 @@ export default function ProjectBot() {
   const [isTyping, setIsTyping] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+ const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     if (historyRef.current) {
@@ -112,6 +114,17 @@ export default function ProjectBot() {
       inputRef.current.focus();
     }
   }, [open]);
+
+  useEffect(() => {
+  if (open && fullscreen) {
+    document.body.classList.add('bot-fullscreen');
+  } else {
+    document.body.classList.remove('bot-fullscreen');
+  }
+  return () => {
+    document.body.classList.remove('bot-fullscreen');
+  };
+}, [open, fullscreen]);
 
   function handleSend(question?: string) {
     const questionText = question || input;
@@ -147,7 +160,7 @@ export default function ProjectBot() {
   }
 
   return (
-    <div className={styles.botContainer}>
+    <div className={`${styles.botContainer} ${fullscreen ? styles.fullscreen : ""}`}>
     <button 
       className={`${styles.botButton} ${open ? styles.botButtonActive : ''}`}
       onClick={() => setOpen(true)}
@@ -171,14 +184,25 @@ export default function ProjectBot() {
               </button>
             )}
             <button
-              onClick={() => setOpen(false)}
-              className={styles.closeButton}
-              aria-label="Close assistant"
-              title="Close"
-              style={{ marginLeft: '8px' }}
-            >
-              ✕
-            </button>
+                className={styles.fullscreenButton}
+                onClick={() => setFullscreen(f => !f)}
+                aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                title={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              >
+                {fullscreen ? "🗗" : "🗖"}
+              </button>
+            <button
+  onClick={() => {
+    setOpen(false);
+    setFullscreen(false); // Reset fullscreen when closing
+  }}
+  className={styles.closeButton}
+  aria-label="Close assistant"
+  title="Close"
+  style={{ marginLeft: '8px' }}
+>
+  ✕
+</button>
           </div>
         </div>
           
