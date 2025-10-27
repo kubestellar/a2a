@@ -132,7 +132,6 @@ export default function ProjectBot() {
     
     setIsTyping(true);
     
-    // Simulate typing delay for better UX
     setTimeout(() => {
       const answer = findAnswer(questionText);
       setHistory(prev => [...prev, {
@@ -150,7 +149,6 @@ export default function ProjectBot() {
   }
 
   function formatAnswer(answer: string) {
-    // Simple markdown-like formatting
     return answer
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -165,7 +163,7 @@ export default function ProjectBot() {
       className={`${styles.botButton} ${open ? styles.botButtonActive : ''}`}
       onClick={() => setOpen(true)}
       aria-label="Open project assistant"
-      style={{ display: open ? 'none' : 'flex' }} // Hide button when chat is open
+      style={{ display: open ? 'none' : 'flex' }}
     >
       Ask Assistant
     </button>
@@ -192,17 +190,17 @@ export default function ProjectBot() {
                 {fullscreen ? "🗗" : "🗖"}
               </button>
             <button
-  onClick={() => {
-    setOpen(false);
-    setFullscreen(false); // Reset fullscreen when closing
-  }}
-  className={styles.closeButton}
-  aria-label="Close assistant"
-  title="Close"
-  style={{ marginLeft: '8px' }}
->
-  ✕
-</button>
+                onClick={() => {
+                setOpen(false);
+                 setFullscreen(false);
+                   }}
+                  className={styles.closeButton}
+                  aria-label="Close assistant"
+                  title="Close"
+                  style={{ marginLeft: '8px' }}
+                     >
+                       ✕
+                  </button>
           </div>
         </div>
           
