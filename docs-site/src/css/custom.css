@@ -117,3 +117,11 @@ pre code {
     --ifm-font-size-base: 15px;
   }
 }
+
+@media (max-width: 996px) {
+  .navbar__toggle {
+    right: 16px !important;
+    left: auto !important;
+    position: absolute !important;
+  }
+}
