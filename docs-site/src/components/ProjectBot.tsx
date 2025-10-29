@@ -54,6 +54,74 @@ const faq: FAQItem[] = [
   }
 ];
 
+// Gemini API function
+async function fetchGeminiAnswer(apiKey: string, question: string): Promise<string> {
+  if (!apiKey) {
+    return "❌ Gemini API key is not configured. Please contact the administrator.";
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  
+  const prompt = `You are a specialized assistant for KubeStellar A2A, an intelligent orchestrator for multi-cluster Kubernetes operations.
+
+STRICT GUIDELINES:
+- ONLY answer questions about KubeStellar A2A, Kubernetes multi-cluster management, or directly related technologies
+- If asked about unrelated topics, politely redirect: "I'm specifically designed to help with KubeStellar A2A. Please ask about installation, usage, troubleshooting, or Kubernetes multi-cluster topics."
+- Focus on practical, actionable advice
+- Use markdown formatting for code blocks and emphasis
+- Keep responses concise and helpful
+
+CONTEXT: KubeStellar A2A provides:
+- AI-powered automation with natural language interfaces
+- Multi-cluster Kubernetes management with advanced targeting
+- Integration with KubeStellar's WDS (Workload Description Space) and ITS (Inventory & Transport Space)
+- Binding policies for workload placement
+- Helm deployments across clusters
+- CLI and agent-based interfaces
+
+Question: ${question}
+
+Please provide a helpful, accurate response with markdown formatting if needed.`;
+
+  const body = {
+    contents: [{ 
+      parts: [{ text: prompt }] 
+    }],
+    generationConfig: {
+      temperature: 0.7,
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 1024,
+    }
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      return `❌ Unable to get AI response. Please try again or contact support.`;
+    }
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!text) {
+      return "🤖 I couldn't generate a response. Please try rephrasing your question.";
+    }
+    
+    return text;
+  } catch (error) {
+    return "❌ Network error. Please check your connection and try again.";
+  }
+}
+
+// Fallback FAQ function
 function findAnswer(question: string): string {
   const q = question.toLowerCase();
   let bestMatch: FAQItem | null = null;
@@ -62,12 +130,10 @@ function findAnswer(question: string): string {
   for (const item of faq) {
     let score = 0;
     
-    // Check exact question match
     if (q.includes(item.q.toLowerCase())) {
       score += 10;
     }
     
-    // Check keywords
     for (const keyword of item.keywords) {
       if (q.includes(keyword.toLowerCase())) {
         score += keyword.length > 3 ? 3 : 2;
@@ -95,19 +161,28 @@ const quickActions = [
 ];
 
 export default function ProjectBot() {
+  const { siteConfig } = useDocusaurusContext();
+  const geminiApiKey = siteConfig.customFields?.geminiApiKey as string;
+  
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<{q: string, a: string, timestamp: Date}[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
- const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
-  useEffect(() => {
+  // Auto-scroll function
+  const scrollToBottom = () => {
     if (historyRef.current) {
       historyRef.current.scrollTop = historyRef.current.scrollHeight;
     }
-  }, [history]);
+  };
+
+  // Scroll when history changes OR when typing status changes
+  useEffect(() => {
+    scrollToBottom();
+  }, [history, isTyping]);
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -116,32 +191,56 @@ export default function ProjectBot() {
   }, [open]);
 
   useEffect(() => {
-  if (open && fullscreen) {
-    document.body.classList.add('bot-fullscreen');
-  } else {
-    document.body.classList.remove('bot-fullscreen');
-  }
-  return () => {
-    document.body.classList.remove('bot-fullscreen');
-  };
-}, [open, fullscreen]);
+    if (open && fullscreen) {
+      document.body.classList.add('bot-fullscreen');
+    } else {
+      document.body.classList.remove('bot-fullscreen');
+    }
+    return () => {
+      document.body.classList.remove('bot-fullscreen');
+    };
+  }, [open, fullscreen]);
 
-  function handleSend(question?: string) {
+  // Improved handleSend with immediate scroll
+  async function handleSend(question?: string) {
     const questionText = question || input;
     if (!questionText.trim()) return;
     
-    setIsTyping(true);
+    // Add user message immediately and scroll
+    setHistory(prev => [...prev, {
+      q: questionText,
+      a: "", // Empty answer initially
+      timestamp: new Date()
+    }]);
     
-    setTimeout(() => {
-      const answer = findAnswer(questionText);
-      setHistory(prev => [...prev, {
-        q: questionText,
-        a: answer,
-        timestamp: new Date()
-      }]);
-      setInput("");
-      setIsTyping(false);
-    }, 500);
+    setIsTyping(true);
+    setInput("");
+    
+    // Scroll immediately after adding user message
+    setTimeout(scrollToBottom, 50);
+    
+    let answer = "";
+    
+    try {
+      if (geminiApiKey) {
+        answer = await fetchGeminiAnswer(geminiApiKey, questionText);
+      } else {
+        answer = findAnswer(questionText);
+      }
+    } catch (error) {
+      answer = "❌ An unexpected error occurred. Please try again.";
+    }
+    
+    // Update the last message with the answer
+    setHistory(prev => {
+      const newHistory = [...prev];
+      if (newHistory.length > 0) {
+        newHistory[newHistory.length - 1].a = answer;
+      }
+      return newHistory;
+    });
+    
+    setIsTyping(false);
   }
 
   function handleClear() {
@@ -159,58 +258,80 @@ export default function ProjectBot() {
 
   return (
     <div className={`${styles.botContainer} ${fullscreen ? styles.fullscreen : ""}`}>
-    <button 
-      className={`${styles.botButton} ${open ? styles.botButtonActive : ''}`}
-      onClick={() => setOpen(true)}
-      aria-label="Open project assistant"
-      style={{ display: open ? 'none' : 'flex' }}
-    >
-      Ask Assistant
-    </button>
-    
-    {open && (
-      <div className={styles.botWindow}>
-        <div className={styles.botHeader}>
-          <div className={styles.botTitle}>
-            <span className={styles.botIcon}>🤖</span>
-            <strong>KubeStellar Assistant</strong>
-          </div>
-          <div>
-            {history.length > 0 && (
-              <button onClick={handleClear} className={styles.clearButton}>
-                Clear
-              </button>
-            )}
-            <button
+      <button 
+        className={`${styles.botButton} ${open ? styles.botButtonActive : ''}`}
+        onClick={() => setOpen(true)}
+        aria-label="Open project assistant"
+        style={{ display: open ? 'none' : 'flex' }}
+      >
+        💬 Ask Assistant
+      </button>
+      
+      {open && (
+        <div className={styles.botWindow}>
+          <div className={styles.botHeader}>
+            <div className={styles.botTitle}>
+              <div className={styles.botInfo}>
+                <div className={styles.botName}>KubeStellar Assistant</div>
+                <div className={styles.botStatus}>
+                  {geminiApiKey ? (
+                    <span className={styles.aiEnabled}>  (AI-Powered)</span>
+                  ) : (
+                    <span className={styles.faqMode}>📚 Knowledge Base</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className={styles.botControls}>
+              {history.length > 0 && (
+                <button 
+                  onClick={handleClear} 
+                  className={styles.clearButton}
+                  title="Clear conversation"
+                >
+                  Clear
+                </button>
+              )}
+              <button
                 className={styles.fullscreenButton}
                 onClick={() => setFullscreen(f => !f)}
                 aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                 title={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               >
-                {fullscreen ? "🗗" : "🗖"}
+                {fullscreen ? "🗗" : "⛶"}
               </button>
-            <button
+              <button
                 onClick={() => {
-                setOpen(false);
-                 setFullscreen(false);
-                   }}
-                  className={styles.closeButton}
-                  aria-label="Close assistant"
-                  title="Close"
-                  style={{ marginLeft: '8px' }}
-                     >
-                       ✕
-                  </button>
+                  setOpen(false);
+                  setFullscreen(false);
+                }}
+                className={styles.closeButton}
+                aria-label="Close assistant"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
           </div>
-        </div>
-          
+            
           <div className={styles.botHistory} ref={historyRef}>
             {history.length === 0 ? (
               <div className={styles.welcomeMessage}>
                 <div className={styles.welcomeText}>
-                  👋 Hi! I'm here to help you with KubeStellar A2A.
+                  <h3>👋 Welcome to KubeStellar Assistant!</h3>
+                  <p>I'm here to help you with KubeStellar A2A - your intelligent multi-cluster Kubernetes orchestrator.</p>
+                  {geminiApiKey ? (
+                    <div className={styles.aiIndicator}>
+                      ✨ Powered by advanced AI for intelligent responses
+                    </div>
+                  ) : (
+                    <div className={styles.kbIndicator}>
+                      📖 Using curated knowledge base
+                    </div>
+                  )}
                 </div>
                 <div className={styles.quickActions}>
+                  <p className={styles.quickActionsTitle}>Quick actions:</p>
                   {quickActions.map((action, idx) => (
                     <button
                       key={idx}
@@ -232,29 +353,23 @@ export default function ProjectBot() {
                     </div>
                     <div className={styles.messageText}>{item.q}</div>
                   </div>
-                  <div className={styles.botMessage}>
-                    <div className={styles.messageHeader}>
-                      <span className={styles.botIcon}>🤖</span>
-                      <span className={styles.botName}>Assistant</span>
+                  {(item.a || isTyping && idx === history.length - 1) && (
+                    <div className={styles.botMessage}>
+                      <div className={styles.messageHeader}>
+                        <span className={styles.botIcon}>🤖</span>
+                        <span className={styles.botName}>Assistant</span>
+                      </div>
+                      <div className={styles.messageText}>
+                        {item.a ? formatAnswer(item.a) : (
+                          <div className={styles.typingIndicator}>
+                            <span></span><span></span><span></span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className={styles.messageText}>
-                      {formatAnswer(item.a)}
-                    </div>
-                  </div>
+                  )}
                 </div>
               ))
-            )}
-            
-            {isTyping && (
-              <div className={styles.botMessage}>
-                <div className={styles.messageHeader}>
-                  <span className={styles.botIcon}>🤖</span>
-                  <span className={styles.botName}>Assistant</span>
-                </div>
-                <div className={styles.typingIndicator}>
-                  <span></span><span></span><span></span>
-                </div>
-              </div>
             )}
           </div>
           
@@ -265,15 +380,16 @@ export default function ProjectBot() {
               onChange={e => setInput(e.target.value)}
               placeholder="Ask me anything about KubeStellar A2A..."
               className={styles.botInput}
-              onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
+              onKeyDown={e => e.key === "Enter" && !e.shiftKey && !isTyping && handleSend()}
               disabled={isTyping}
             />
             <button 
               onClick={() => handleSend()} 
               className={styles.sendButton}
               disabled={!input.trim() || isTyping}
+              title="Send message"
             >
-              {isTyping ? '⏳' : '📤'}
+              {isTyping ? '⏳' : '🚀'}
             </button>
           </div>
         </div>

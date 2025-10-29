@@ -21,6 +21,11 @@ const config: Config = {
     locales: ['en'],
   },
 
+  // Add this customFields section
+  customFields: {
+    geminiApiKey: process.env.GEMINI_API_KEY || '',
+  },
+
   presets: [
     [
       'classic',
