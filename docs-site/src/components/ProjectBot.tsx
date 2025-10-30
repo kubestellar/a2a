@@ -54,6 +54,9 @@ const faq: FAQItem[] = [
   }
 ];
 
+// Storage key for localStorage
+const STORAGE_KEY = 'kubestellar-chat-history';
+
 // Gemini API function
 async function fetchGeminiAnswer(apiKey: string, question: string): Promise<string> {
   if (!apiKey) {
@@ -172,6 +175,33 @@ export default function ProjectBot() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
 
+  useEffect(() => {
+    try {
+      const savedHistory = localStorage.getItem(STORAGE_KEY);
+      if (savedHistory) {
+        const parsed = JSON.parse(savedHistory);
+        // Convert timestamp strings back to Date objects
+        const historyWithDates = parsed.map((item: any) => ({
+          ...item,
+          timestamp: new Date(item.timestamp)
+        }));
+        setHistory(historyWithDates);
+      }
+    } catch (error) {
+      // Silently handle errors
+    }
+  }, []);
+
+
+  useEffect(() => {
+    if (history.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      } catch (error) {
+      }
+    }
+  }, [history]);
+
   // Auto-scroll function
   const scrollToBottom = () => {
     if (historyRef.current) {
@@ -245,6 +275,12 @@ export default function ProjectBot() {
 
   function handleClear() {
     setHistory([]);
+    // Also clear from localStorage
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      // Silently handle errors
+    }
   }
 
   function formatAnswer(answer: string) {
