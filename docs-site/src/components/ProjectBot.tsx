@@ -171,9 +171,13 @@ export default function ProjectBot() {
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<{q: string, a: string, timestamp: Date}[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [currentlyTyping, setCurrentlyTyping] = useState<string>("");
+  const [isShowingTypingEffect, setIsShowingTypingEffect] = useState(false);
+  
   const historyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     try {
@@ -192,15 +196,49 @@ export default function ProjectBot() {
     }
   }, []);
 
-
   useEffect(() => {
     if (history.length > 0) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
       } catch (error) {
+        // Silently handle errors
       }
     }
   }, [history]);
+
+  useEffect(() => {
+    return () => {
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const typeResponse = (text: string, callback: () => void) => {
+    setCurrentlyTyping("");
+    setIsShowingTypingEffect(true);
+    let index = 0;
+    
+
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+    }
+    
+    typingIntervalRef.current = setInterval(() => {
+      setCurrentlyTyping(text.slice(0, index + 1));
+      index++;
+      
+      if (index >= text.length) {
+        if (typingIntervalRef.current) {
+          clearInterval(typingIntervalRef.current);
+          typingIntervalRef.current = null;
+        }
+        setIsShowingTypingEffect(false);
+        setCurrentlyTyping("");
+        callback();
+      }
+    }, 10);
+  };
 
   // Auto-scroll function
   const scrollToBottom = () => {
@@ -209,10 +247,10 @@ export default function ProjectBot() {
     }
   };
 
-  // Scroll when history changes OR when typing status changes
+  // Scroll when history changes OR when typing status changes OR during typing effect
   useEffect(() => {
     scrollToBottom();
-  }, [history, isTyping]);
+  }, [history, isTyping, currentlyTyping]);
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -231,22 +269,20 @@ export default function ProjectBot() {
     };
   }, [open, fullscreen]);
 
-  // Improved handleSend with immediate scroll
+  // Enhanced handleSend with typing effect
   async function handleSend(question?: string) {
     const questionText = question || input;
     if (!questionText.trim()) return;
     
-    // Add user message immediately and scroll
     setHistory(prev => [...prev, {
       q: questionText,
-      a: "", // Empty answer initially
+      a: "",
       timestamp: new Date()
     }]);
     
     setIsTyping(true);
     setInput("");
-    
-    // Scroll immediately after adding user message
+
     setTimeout(scrollToBottom, 50);
     
     let answer = "";
@@ -261,16 +297,17 @@ export default function ProjectBot() {
       answer = "❌ An unexpected error occurred. Please try again.";
     }
     
-    // Update the last message with the answer
-    setHistory(prev => {
-      const newHistory = [...prev];
-      if (newHistory.length > 0) {
-        newHistory[newHistory.length - 1].a = answer;
-      }
-      return newHistory;
-    });
-    
     setIsTyping(false);
+    
+    typeResponse(answer, () => {
+      setHistory(prev => {
+        const newHistory = [...prev];
+        if (newHistory.length > 0) {
+          newHistory[newHistory.length - 1].a = answer;
+        }
+        return newHistory;
+      });
+    });
   }
 
   function handleClear() {
@@ -281,6 +318,12 @@ export default function ProjectBot() {
     } catch (error) {
       // Silently handle errors
     }
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
+    }
+    setCurrentlyTyping("");
+    setIsShowingTypingEffect(false);
   }
 
   function formatAnswer(answer: string) {
@@ -389,14 +432,18 @@ export default function ProjectBot() {
                     </div>
                     <div className={styles.messageText}>{item.q}</div>
                   </div>
-                  {(item.a || isTyping && idx === history.length - 1) && (
+                  {(item.a || isTyping || (isShowingTypingEffect && idx === history.length - 1)) && (
                     <div className={styles.botMessage}>
                       <div className={styles.messageHeader}>
                         <span className={styles.botIcon}>🤖</span>
                         <span className={styles.botName}>Assistant</span>
                       </div>
                       <div className={styles.messageText}>
-                        {item.a ? formatAnswer(item.a) : (
+                        {item.a ? (
+                          formatAnswer(item.a)
+                        ) : isShowingTypingEffect && idx === history.length - 1 ? (
+                          formatAnswer(currentlyTyping)
+                        ) : (
                           <div className={styles.typingIndicator}>
                             <span></span><span></span><span></span>
                           </div>
@@ -416,16 +463,16 @@ export default function ProjectBot() {
               onChange={e => setInput(e.target.value)}
               placeholder="Ask me anything about KubeStellar A2A..."
               className={styles.botInput}
-              onKeyDown={e => e.key === "Enter" && !e.shiftKey && !isTyping && handleSend()}
-              disabled={isTyping}
+              onKeyDown={e => e.key === "Enter" && !e.shiftKey && !isTyping && !isShowingTypingEffect && handleSend()}
+              disabled={isTyping || isShowingTypingEffect}
             />
             <button 
               onClick={() => handleSend()} 
               className={styles.sendButton}
-              disabled={!input.trim() || isTyping}
+              disabled={!input.trim() || isTyping || isShowingTypingEffect}
               title="Send message"
             >
-              {isTyping ? '⏳' : '🚀'}
+              {isTyping || isShowingTypingEffect ? '⏳' : '🚀'}
             </button>
           </div>
         </div>
