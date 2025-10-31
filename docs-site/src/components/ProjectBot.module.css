@@ -390,3 +390,18 @@
   font-size: 0.75rem;
   color: var(--ifm-color-emphasis-500);
 }
+
+.inputContainer {
+  flex: 1;
+  position: relative;
+}
+
+.charCounter {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--ifm-color-emphasis-500);
+  pointer-events: none;
+}

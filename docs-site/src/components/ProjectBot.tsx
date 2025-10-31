@@ -458,26 +458,33 @@ export default function ProjectBot() {
               ))
             )}
           </div>
-          
           <div className={styles.botInputRow}>
+           <div className={styles.inputContainer}>
             <input
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Ask me anything about KubeStellar A2A..."
-              className={styles.botInput}
-              onKeyDown={e => e.key === "Enter" && !e.shiftKey && !isTyping && !isShowingTypingEffect && handleSend()}
-              disabled={isTyping || isShowingTypingEffect}
-            />
-            <button 
-              onClick={() => handleSend()} 
-              className={styles.sendButton}
-              disabled={!input.trim() || isTyping || isShowingTypingEffect}
-              title="Send message"
-            >
-              {isTyping || isShowingTypingEffect ? '⏳' : '🚀'}
-            </button>
-          </div>
+             ref={inputRef}
+             value={input}
+             onChange={e => setInput(e.target.value)}
+             placeholder="Ask me anything about KubeStellar A2A..."
+             className={styles.botInput}
+             onKeyDown={e => e.key === "Enter" && !e.shiftKey && !isTyping && !isShowingTypingEffect && handleSend()}
+             disabled={isTyping || isShowingTypingEffect}
+             maxLength={500}
+              />
+            {input.length > 0 && (
+            <span className={styles.charCounter}>
+            {input.length}/500
+           </span>
+            )}
+         </div>
+         <button 
+         onClick={() => handleSend()} 
+          className={styles.sendButton}
+          disabled={!input.trim() || isTyping || isShowingTypingEffect}
+          title="Send message"
+           >
+         {isTyping || isShowingTypingEffect ? '⏳' : '🚀'}
+         </button>
+         </div>
         </div>
       )}
     </div>
