@@ -27,6 +27,9 @@ class OpenAIProvider(BaseLLMProvider):
     """OpenAI API provider."""
 
     MODELS = [
+        "gpt-5-mini",
+        "gpt-5",
+        "gpt-4.1",
         "gpt-4",
         "gpt-4-turbo",
         "gpt-4-turbo-preview",
