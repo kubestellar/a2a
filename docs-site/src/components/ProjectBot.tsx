@@ -173,11 +173,30 @@ export default function ProjectBot() {
   const [isTyping, setIsTyping] = useState(false);
   const [currentlyTyping, setCurrentlyTyping] = useState<string>("");
   const [isShowingTypingEffect, setIsShowingTypingEffect] = useState(false);
+  const [copiedStates, setCopiedStates] = useState<CopyState>({});
   
   const historyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const copyToClipboard = async (text: string, messageIndex: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedStates(prev => ({ ...prev, [messageIndex]: true }));
+      
+      // Reset after 2 seconds
+      setTimeout(() => {
+        setCopiedStates(prev => {
+          const newState = { ...prev };
+          delete newState[messageIndex];
+          return newState;
+        });
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -452,6 +471,32 @@ export default function ProjectBot() {
                           </div>
                         )}
                       </div>
+                      {item.a && (
+                        <div className={styles.messageActions}>
+                          <button 
+                            className={`${styles.actionButton} ${copiedStates[idx] ? styles.copied : ''}`}
+                            onClick={() => copyToClipboard(item.a, idx)}
+                            title={copiedStates[idx] ? "Copied!" : "Copy message"}
+                          >
+                       {copiedStates[idx] ? (
+                              <>
+                                <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <polyline points="20,6 9,17 4,12"></polyline>
+                                </svg>
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                  <path d="m5,9 0,-2a2,2 0 0,1 2,-2h2"></path>
+                                </svg>
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
