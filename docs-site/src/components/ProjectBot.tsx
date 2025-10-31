@@ -427,9 +427,12 @@ export default function ProjectBot() {
                 <div key={idx} className={styles.conversation}>
                   <div className={styles.userMessage}>
                     <div className={styles.messageHeader}>
-                      <span className={styles.userIcon}>👤</span>
+                     <span className={styles.userIcon}>👤</span>
                       <span className={styles.userName}>You</span>
-                    </div>
+                       <span className={styles.messageTime}>
+                        {new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                       </span>
+                      </div>
                     <div className={styles.messageText}>{item.q}</div>
                   </div>
                   {(item.a || isTyping || (isShowingTypingEffect && idx === history.length - 1)) && (
