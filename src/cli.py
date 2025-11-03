@@ -189,9 +189,12 @@ def show_config():
 def list_providers_cmd():
     """List available LLM providers."""
     providers = list_providers()
+    config_manager = get_config_manager()
+    default_provider = config_manager.get_default_provider()
     click.echo("Available LLM providers:")
     for provider in providers:
-        click.echo(f"  - {provider}")
+        marker = " (default)" if provider == default_provider else ""
+        click.echo(f"  - {provider}{marker}")
 
 
 def main():
