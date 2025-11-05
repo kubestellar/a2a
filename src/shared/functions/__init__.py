@@ -1,8 +1,8 @@
 """Function implementations."""
 
 from src.shared.base_functions import function_registry
-from src.shared.functions.deploy_to import DeployToFunction
 from src.shared.functions.cluster_label_management import ClusterLabelManagement
+from src.shared.functions.deploy_to import DeployToFunction
 from src.shared.functions.gvrc_discovery import GVRCDiscoveryFunction
 from src.shared.functions.helm_deploy import HelmDeployFunction
 from src.shared.functions.kubeconfig import KubeconfigFunction
