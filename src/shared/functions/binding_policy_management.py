@@ -39,7 +39,6 @@ class BindingPolicyManagement(BaseFunction):
                         "(list, create, delete, quick-create) against a single WDS."
         )
 
-    # ───────────────────────── Public entry ─────────────────────────
     async def execute(
         self,
         operation: str = "list",                     # list | create | delete | quick_create
@@ -73,10 +72,6 @@ class BindingPolicyManagement(BaseFunction):
                 namespaces = json.loads(namespaces)
             except json.JSONDecodeError:
                 namespaces = [s.strip() for s in namespaces.split(",") if s.strip()]
-        # ------------------------------------------------------------------
-        # IMPROVE robustness of incoming parameters
-        # - the chat wrapper sometimes sends Google's MapComposite etc.
-        # ------------------------------------------------------------------
         def _as_dict(obj):
             return dict(obj) if not isinstance(obj, dict) else obj
         def _as_list(obj):
@@ -89,11 +84,6 @@ class BindingPolicyManagement(BaseFunction):
         if namespaces not in (None, "", []):
             namespaces = _as_list(namespaces)
 
-        # ------------------------------------------------------------------
-        # If the wrapper asked for "create" but gave no YAML/JSON and DID
-        # give selector_labels + resources, treat it as quick_create.
-        # (must happen BEFORE the explicit create-branch)
-        # ------------------------------------------------------------------
         if operation == "create" and not (policy_yaml or policy_json) \
            and selector_labels and resources:
             operation = "quick_create"
@@ -126,7 +116,6 @@ class BindingPolicyManagement(BaseFunction):
 
         return {"status": "error", "error": f"unknown operation {operation}"}
 
-    # ───────────────────────── list ─────────────────────────
     async def _op_list(self, ctx: str, kubeconfig: str) -> Dict[str, Any]:
         cmd = ["kubectl", "--context", ctx, "get",
                "bindingpolicies.control.kubestellar.io", "-o", "json"]
@@ -146,7 +135,6 @@ class BindingPolicyManagement(BaseFunction):
             "policies": [r.__dict__ for r in results],
         }
 
-    # ───────────────────────── quick-create helpers ─────────────────────────
     def _build_quick_manifest(
         self,
         name: str,

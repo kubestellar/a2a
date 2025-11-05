@@ -10,7 +10,7 @@ from src.shared.functions.kubestellar_management import KubeStellarManagementFun
 from src.shared.functions.multicluster_create import MultiClusterCreateFunction
 from src.shared.functions.multicluster_logs import MultiClusterLogsFunction
 from src.shared.functions.namespace_utils import NamespaceUtilsFunction
-
+from src.shared.functions.binding_policy_management import BindingPolicyManagement
 
 def initialize_functions():
     """Initialize and register all available functions."""
@@ -24,7 +24,7 @@ def initialize_functions():
     function_registry.register(MultiClusterCreateFunction())
     function_registry.register(MultiClusterLogsFunction())
     function_registry.register(DeployToFunction())
-
+    function_registry.register(BindingPolicyManagement())
     # Register Helm deployment function
     function_registry.register(HelmDeployFunction())
     
