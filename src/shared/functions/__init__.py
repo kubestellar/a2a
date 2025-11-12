@@ -1,7 +1,9 @@
 """Function implementations."""
 
 from src.shared.base_functions import function_registry
+
 from src.shared.functions.cluster_label_management import ClusterLabelManagement
+from src.shared.functions.binding_policy_management import BindingPolicyManagement
 from src.shared.functions.deploy_to import DeployToFunction
 from src.shared.functions.gvrc_discovery import GVRCDiscoveryFunction
 from src.shared.functions.helm_deploy import HelmDeployFunction
@@ -24,7 +26,7 @@ def initialize_functions():
     function_registry.register(MultiClusterCreateFunction())
     function_registry.register(MultiClusterLogsFunction())
     function_registry.register(DeployToFunction())
-
+    function_registry.register(BindingPolicyManagement())
     # Register Helm deployment function
     function_registry.register(HelmDeployFunction())
     
