@@ -34,7 +34,7 @@ class KubeconfigOutput:
 class KubeconfigFunction(BaseFunction):
     """Function to get details from kubeconfig file."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             name="get_kubeconfig",
             description="Get comprehensive details from kubeconfig file including available contexts, clusters, and users. Use this to understand your Kubernetes setup and available clusters for multi-cluster operations.",
@@ -121,7 +121,7 @@ class KubeconfigFunction(BaseFunction):
             out = KubeconfigOutput(status="error", details=err)
             return {"status": out.status, **out.details}
 
-    def _get_context_details(self, kubeconfig: Dict, context: Dict) -> Dict[str, Any]:
+    def _get_context_details(self, kubeconfig: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """Get details for a specific context."""
         context_info = context.get("context", {})
         return {
@@ -131,7 +131,7 @@ class KubeconfigFunction(BaseFunction):
             "namespace": context_info.get("namespace", "default"),
         }
 
-    def _get_clusters(self, kubeconfig: Dict) -> List[Dict[str, Any]]:
+    def _get_clusters(self, kubeconfig: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get cluster information."""
         clusters = []
         for cluster in kubeconfig.get("clusters", []):
@@ -147,12 +147,12 @@ class KubeconfigFunction(BaseFunction):
             )
         return clusters
 
-    def _get_users(self, kubeconfig: Dict) -> List[Dict[str, Any]]:
+    def _get_users(self, kubeconfig: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get user information (sanitized)."""
         users = []
         for user in kubeconfig.get("users", []):
             user_data = user.get("user", {})
-            user_info = {"name": user["name"], "auth_type": []}
+            user_info: Dict[str, Any] = {"name": user["name"], "auth_type": []}
 
             # Determine auth type without exposing sensitive data
             if (

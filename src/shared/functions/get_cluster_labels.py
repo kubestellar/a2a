@@ -29,35 +29,35 @@ class GetClusterLabelsFunction(BaseFunction):
     ) -> Dict[str, Any]:
         """
         Get ManagedCluster labels for KubeStellar deployments.
-        
+
         Args:
             context: Kubernetes context to use (default: current context)
             kubeconfig: Path to kubeconfig file
             output_format: Output format (table, json, yaml)
-            
+
         Returns:
             Dictionary with cluster information and labels
         """
         try:
             # Build kubectl command
             cmd = ["kubectl", "get", "managedclusters", "-A"]
-            
+
             if output_format == "json":
                 cmd.extend(["-o", "json"])
             elif output_format == "yaml":
                 cmd.extend(["-o", "yaml"])
             else:
                 cmd.append("--show-labels")
-                
+
             if context:
                 cmd.extend(["--context", context])
-                
+
             if kubeconfig:
                 cmd.extend(["--kubeconfig", kubeconfig])
-                
+
             # Execute command
             result = await self._run_command(cmd)
-            
+
             if result["returncode"] != 0:
                 # Try without -A flag (some setups don't support it)
                 cmd = ["kubectl", "get", "managedclusters"]
@@ -71,30 +71,34 @@ class GetClusterLabelsFunction(BaseFunction):
                     cmd.extend(["--context", context])
                 if kubeconfig:
                     cmd.extend(["--kubeconfig", kubeconfig])
-                    
+
                 result = await self._run_command(cmd)
-                
+
             if result["returncode"] != 0:
                 return {
                     "status": "error",
                     "error": result["stderr"] or "Failed to get ManagedClusters",
-                    "suggestion": "Make sure you're connected to a hub/ITS cluster with OCM installed"
+                    "suggestion": "Make sure you're connected to a hub/ITS cluster with OCM installed",
                 }
-                
+
             # Parse results based on format
             if output_format == "json":
                 data = json.loads(result["stdout"])
                 clusters = []
-                
+
                 for item in data.get("items", []):
                     cluster_info = {
                         "name": item["metadata"]["name"],
                         "labels": item["metadata"].get("labels", {}),
-                        "status": item["status"].get("conditions", [{}])[0].get("type", "Unknown"),
-                        "accepted": item["spec"].get("hubAcceptedManagedCluster", False)
+                        "status": item["status"]
+                        .get("conditions", [{}])[0]
+                        .get("type", "Unknown"),
+                        "accepted": item["spec"].get(
+                            "hubAcceptedManagedCluster", False
+                        ),
                     }
                     clusters.append(cluster_info)
-                    
+
                 # Extract unique labels
                 all_labels = {}
                 for cluster in clusters:
@@ -102,41 +106,42 @@ class GetClusterLabelsFunction(BaseFunction):
                         if key not in all_labels:
                             all_labels[key] = set()
                         all_labels[key].add(value)
-                        
+
                 # Convert sets to lists for JSON serialization
                 unique_labels = {k: list(v) for k, v in all_labels.items()}
-                
+
                 return {
                     "status": "success",
                     "clusters": clusters,
                     "unique_labels": unique_labels,
                     "total_clusters": len(clusters),
-                    "example_selectors": self._generate_example_selectors(unique_labels)
+                    "example_selectors": self._generate_example_selectors(
+                        unique_labels
+                    ),
                 }
             else:
                 # Return raw output for table/yaml format
                 return {
                     "status": "success",
                     "output": result["stdout"],
-                    "format": output_format
+                    "format": output_format,
                 }
-                
+
         except Exception as e:
-            return {
-                "status": "error", 
-                "error": str(e)
-            }
-            
-    def _generate_example_selectors(self, labels: Dict[str, List[str]]) -> List[Dict[str, str]]:
+            return {"status": "error", "error": str(e)}
+
+    def _generate_example_selectors(
+        self, labels: Dict[str, List[str]]
+    ) -> List[Dict[str, str]]:
         """Generate example cluster selector labels for BindingPolicy."""
         examples = []
-        
+
         # Single label examples
         for key, values in labels.items():
             if key != "name":  # Skip name label as it's too specific
                 for value in values[:2]:  # Limit to 2 examples per key
                     examples.append({key: value})
-                    
+
         # Multi-label example if we have multiple keys
         if len(labels) > 1:
             multi_example = {}
@@ -147,9 +152,9 @@ class GetClusterLabelsFunction(BaseFunction):
                     multi_example[key] = values[0]
             if multi_example:
                 examples.append(multi_example)
-                
+
         return examples[:5]  # Return max 5 examples
-            
+
     async def _run_command(self, cmd: List[str]) -> Dict[str, Any]:
         """Execute command and return results."""
         try:
@@ -157,7 +162,7 @@ class GetClusterLabelsFunction(BaseFunction):
                 *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
             stdout, stderr = await process.communicate()
-            
+
             return {
                 "returncode": process.returncode,
                 "stdout": stdout.decode("utf-8"),
@@ -177,18 +182,18 @@ class GetClusterLabelsFunction(BaseFunction):
             "properties": {
                 "context": {
                     "type": "string",
-                    "description": "Kubernetes context to use"
+                    "description": "Kubernetes context to use",
                 },
                 "kubeconfig": {
-                    "type": "string", 
-                    "description": "Path to kubeconfig file"
+                    "type": "string",
+                    "description": "Path to kubeconfig file",
                 },
                 "output_format": {
                     "type": "string",
                     "enum": ["table", "json", "yaml"],
                     "description": "Output format",
-                    "default": "table"
-                }
+                    "default": "table",
+                },
             },
-            "required": []
+            "required": [],
         }

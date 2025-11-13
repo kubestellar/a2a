@@ -2,7 +2,7 @@
 
 import asyncio
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 from src.shared.base_functions import BaseFunction
 
@@ -44,7 +44,7 @@ class MultiClusterLogsOutput:
 class MultiClusterLogsFunction(BaseFunction):
     """Function to aggregate logs from containers across multiple Kubernetes clusters."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             name="multicluster_logs",
             description="Retrieve and aggregate container logs from pods across multiple clusters. Use this to troubleshoot applications, monitor workloads, or gather logs from distributed services. Can target specific pods by name, label selectors, or resource types (deployment/nginx). Essential for multi-cluster debugging and observability.",
@@ -94,7 +94,6 @@ class MultiClusterLogsFunction(BaseFunction):
             remote_context = params.remote_context
             max_log_requests = params.max_log_requests
 
-
             if (
                 not pod_name
                 and not resource_selector
@@ -105,8 +104,6 @@ class MultiClusterLogsFunction(BaseFunction):
                     "error": "Either pod_name, resource_selector, label_selector, or all_namespaces must be specified",
                 }
                 return asdict(MultiClusterLogsOutput(status="error", details=err))
-
-
 
             # Discover clusters
             clusters = await self._discover_clusters(kubeconfig, remote_context)
@@ -142,7 +139,9 @@ class MultiClusterLogsFunction(BaseFunction):
                     max_log_requests,
                 )
                 return asdict(
-                    MultiClusterLogsOutput(status=resp.get("status", "success"), details=resp)
+                    MultiClusterLogsOutput(
+                        status=resp.get("status", "success"), details=resp
+                    )
                 )
             else:
                 resp = await self._get_logs_from_clusters(
@@ -162,7 +161,9 @@ class MultiClusterLogsFunction(BaseFunction):
                     kubeconfig,
                 )
                 return asdict(
-                    MultiClusterLogsOutput(status=resp.get("status", "success"), details=resp)
+                    MultiClusterLogsOutput(
+                        status=resp.get("status", "success"), details=resp
+                    )
                 )
 
         except Exception as e:
@@ -284,7 +285,7 @@ class MultiClusterLogsFunction(BaseFunction):
         # Limit concurrent requests to avoid overwhelming the system
         semaphore = asyncio.Semaphore(max_requests)
 
-        async def follow_cluster_logs(cluster):
+        async def follow_cluster_logs(cluster: Dict[str, Any]) -> Dict[str, Any]:
             async with semaphore:
                 return await self._follow_logs_from_cluster(
                     cluster,
@@ -456,10 +457,11 @@ class MultiClusterLogsFunction(BaseFunction):
 
             # Stream output with cluster prefix
             lines_processed = 0
-            async for line in self._stream_output(process.stdout, cluster["name"]):
-                lines_processed += 1
-                # In a real implementation, you'd yield or emit these lines
-                # For now, we'll just count them
+            if process.stdout:
+                async for line in self._stream_output(process.stdout, cluster["name"]):
+                    lines_processed += 1
+                    # In a real implementation, you'd yield or emit these lines
+                    # For now, we'll just count them
 
             await process.wait()
 
@@ -477,7 +479,9 @@ class MultiClusterLogsFunction(BaseFunction):
                 "cluster": cluster["name"],
             }
 
-    async def _stream_output(self, stdout, cluster_name: str):
+    async def _stream_output(
+        self, stdout: asyncio.StreamReader, cluster_name: str
+    ) -> AsyncIterator[str]:
         """Stream output lines with cluster prefix."""
         while True:
             line = await stdout.readline()

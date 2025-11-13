@@ -42,7 +42,7 @@ def initialize_functions():
 
     # Register Helm deployment function
     function_registry.register(HelmDeployFunction())
-    
+
     # Register cluster labels helper function
     function_registry.register(GetClusterLabelsFunction())
 

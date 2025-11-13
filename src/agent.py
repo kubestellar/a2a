@@ -25,7 +25,8 @@ from src.llm_providers.config import get_config_manager
 from src.shared.base_functions import function_registry
 from src.shared.functions import initialize_functions
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 class AgentChat:
     """Interactive agent chat interface."""
@@ -40,6 +41,7 @@ class AgentChat:
         if sys.stdin and sys.stdin.isatty():
             import termios
             import tty
+
             self._old_tty_settings = termios.tcgetattr(sys.stdin)
             tty.setcbreak(sys.stdin.fileno())
 
@@ -74,17 +76,17 @@ class AgentChat:
         other coroutines are running.
         """
         if not sys.stdin.isatty():
-            await asyncio.Future() # block indefinitely if not a TTY
+            await asyncio.Future()  # block indefinitely if not a TTY
             return
 
         loop = asyncio.get_running_loop()
         fut: asyncio.Future[None] = loop.create_future()
 
-        def _on_key_press() -> None:          # called by add_reader
+        def _on_key_press() -> None:  # called by add_reader
             # Non-blocking read
             try:
-                ch = sys.stdin.read(1)            # read one raw byte
-                if ch == "\x1b":                  # ESC
+                ch = sys.stdin.read(1)  # read one raw byte
+                if ch == "\x1b":  # ESC
                     if not fut.done():
                         fut.set_result(None)
             except OSError:
@@ -93,7 +95,7 @@ class AgentChat:
 
         loop.add_reader(sys.stdin.fileno(), _on_key_press)
         try:
-            await fut                         # wait until ESC pressed
+            await fut  # wait until ESC pressed
         finally:
             loop.remove_reader(sys.stdin.fileno())
 
@@ -104,20 +106,19 @@ class AgentChat:
         Otherwise return the coroutine’s result.
         """
         task = asyncio.create_task(coro)
-        esc  = asyncio.create_task(self._wait_for_escape())
+        esc = asyncio.create_task(self._wait_for_escape())
 
-        done, _ = await asyncio.wait({task, esc},
-                                     return_when=asyncio.FIRST_COMPLETED)
+        done, _ = await asyncio.wait({task, esc}, return_when=asyncio.FIRST_COMPLETED)
 
-        if esc in done:                       # user hit ESC
+        if esc in done:  # user hit ESC
             task.cancel()
             self.console.print("[yellow]⏹  Operation cancelled (ESC)[/yellow]")
             try:
-                await task                    # swallow CancelledError
+                await task  # swallow CancelledError
             except asyncio.CancelledError:
                 pass
             return None
-        else:                                 # task finished normally
+        else:  # task finished normally
             esc.cancel()
             return await task
 
@@ -167,11 +168,13 @@ class AgentChat:
             ]
         )
 
-    async def _execute_function(self, function_name: str, args: Dict[str, Any]) -> tuple[str, float]:
+    async def _execute_function(
+        self, function_name: str, args: Dict[str, Any]
+    ) -> tuple[str, float]:
         """Execute a KubeStellar function."""
         function = function_registry.get(function_name)
         if not function:
-            return f"Error: Unknown function '{function_name}'",0.0
+            return f"Error: Unknown function '{function_name}'", 0.0
 
         try:
             start = time.perf_counter()
@@ -180,7 +183,6 @@ class AgentChat:
             return json.dumps(result_dict, indent=2), elapsed
         except Exception as e:
             return f"Error executing {function_name}: {str(e)}", 0.0
-
 
     def _prepare_tools(self) -> List[Dict[str, Any]]:
         """Prepare available tools for the LLM."""
@@ -274,8 +276,8 @@ class AgentChat:
                 response = await self._run_with_cancel(
                     self.provider.generate(
                         messages=conversation,
-                        tools=tools, 
-                        stream=False,  
+                        tools=tools,
+                        stream=False,
                     )
                 )
             if response is None:
@@ -298,12 +300,14 @@ class AgentChat:
                         with self.console.status(
                             f"[dim]⚙️  Executing: {tool_call.name}[/dim]", spinner="dots"
                         ):
-                            result,elapsed = await self._run_with_cancel(
-                                self._execute_function(tool_call.name, tool_call.arguments)
+                            result, elapsed = await self._run_with_cancel(
+                                self._execute_function(
+                                    tool_call.name, tool_call.arguments
+                                )
                             )
-                        if result is None:        
+                        if result is None:
                             return
-                        
+
                         tool_results.append(
                             {"call_id": tool_call.id, "content": result}
                         )
@@ -546,17 +550,39 @@ For pod counts, respond like this:
         """Run the interactive chat loop."""
         # ASCII art for KubeStellar with proper formatting
         self.console.print()
-        self.console.print("[cyan]╭─────────────────────────────────────────────────────────────────────────────────────────────╮[/cyan]")
-        self.console.print("[cyan]│[/cyan]                                                                                             [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]██╗  ██╗██╗   ██╗██████╗ ███████╗███████╗████████╗███████╗██╗     ██╗      █████╗ ██████╗[/bold cyan]  [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]██║ ██╔╝██║   ██║██╔══██╗██╔════╝██╔════╝╚══██╔══╝██╔════╝██║     ██║     ██╔══██╗██╔══██╗[/bold cyan] [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]█████╔╝ ██║   ██║██████╔╝█████╗  ███████╗   ██║   █████╗  ██║     ██║     ███████║██████╔╝[/bold cyan] [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]██╔═██╗ ██║   ██║██╔══██╗██╔══╝  ╚════██║   ██║   ██╔══╝  ██║     ██║     ██╔══██║██╔══██╗[/bold cyan] [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]██║  ██╗╚██████╔╝██████╔╝███████╗███████║   ██║   ███████╗███████╗███████╗██║  ██║██║  ██║[/bold cyan] [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝[/bold cyan] [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]                                                                                             [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]                       [dim]🌟 Multi-Cluster Kubernetes Management Agent 🌟[/dim]                       [cyan]│[/cyan]")
-        self.console.print("[cyan]╰─────────────────────────────────────────────────────────────────────────────────────────────╯[/cyan]")
+        self.console.print(
+            "[cyan]╭─────────────────────────────────────────────────────────────────────────────────────────────╮[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]                                                                                             [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]██╗  ██╗██╗   ██╗██████╗ ███████╗███████╗████████╗███████╗██╗     ██╗      █████╗ ██████╗[/bold cyan]  [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]██║ ██╔╝██║   ██║██╔══██╗██╔════╝██╔════╝╚══██╔══╝██╔════╝██║     ██║     ██╔══██╗██╔══██╗[/bold cyan] [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]█████╔╝ ██║   ██║██████╔╝█████╗  ███████╗   ██║   █████╗  ██║     ██║     ███████║██████╔╝[/bold cyan] [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]██╔═██╗ ██║   ██║██╔══██╗██╔══╝  ╚════██║   ██║   ██╔══╝  ██║     ██║     ██╔══██║██╔══██╗[/bold cyan] [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]██║  ██╗╚██████╔╝██████╔╝███████╗███████║   ██║   ███████╗███████╗███████╗██║  ██║██║  ██║[/bold cyan] [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝[/bold cyan] [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]                                                                                             [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]                       [dim]🌟 Multi-Cluster Kubernetes Management Agent 🌟[/dim]                       [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]╰─────────────────────────────────────────────────────────────────────────────────────────────╯[/cyan]"
+        )
         self.console.print()
 
         # Welcome message
@@ -616,7 +642,10 @@ For pod counts, respond like this:
 
         if sys.stdin and sys.stdin.isatty():
             import termios
-            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, self._old_tty_settings)
+
+            termios.tcsetattr(
+                sys.stdin.fileno(), termios.TCSADRAIN, self._old_tty_settings
+            )
         # Goodbye
         self.console.print("\n[dim]Goodbye![/dim]")
 
@@ -649,14 +678,14 @@ For pod counts, respond like this:
     async def _summarize_result(self, function_name: str, result: str) -> str:
         """Summarize the result of a tool execution using the LLM."""
         try:
-            prompt = f'''Please summarize the following JSON output from the `{function_name}` tool.
+            prompt = f"""Please summarize the following JSON output from the `{function_name}` tool.
 Focus on the most important information for the user, such as success or failure, names of created resources, or key data points.
 Keep the summary concise and easy to read.
 
 Tool Output:
 ```json
 {result}
-```'''
+```"""
             messages = [LLMMessage(role=MessageRole.USER, content=prompt)]
 
             # We don't want the summarizer to call tools, so pass an empty list.

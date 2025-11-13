@@ -124,7 +124,10 @@ class ConfigManager:
 
         try:
             with open(self.keys_file, "r") as f:
-                return json.load(f)
+                keys = json.load(f)
+                if not isinstance(keys, dict):
+                    return {}
+                return {str(k): str(v) for k, v in keys.items()}
         except Exception:
             return {}
 

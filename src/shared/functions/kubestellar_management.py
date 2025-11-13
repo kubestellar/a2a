@@ -39,9 +39,9 @@ class BindingPolicy:
     cluster_selectors: List[Dict[str, Any]]
     workload_transformations: Optional[Dict[str, Any]] = None
     singleton_status_return: bool = False
-    status: Dict[str, Any] = None
+    status: Dict[str, Any] = field(default_factory=dict)
     created: str = ""
-    binding_objects: List[str] = None
+    binding_objects: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -105,7 +105,7 @@ class KubeStellarManagementOutput:
 class KubeStellarManagementFunction(BaseFunction):
     """Enhanced KubeStellar multi-cluster management with deep search and binding policy integration."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             name="kubestellar_management",
             description="Advanced KubeStellar multi-cluster resource management with deep search capabilities, binding policy integration, work status tracking, and comprehensive cluster topology analysis. Provides detailed insights into resource distribution, policy compliance, and cross-cluster relationships.",
@@ -155,7 +155,6 @@ class KubeStellarManagementFunction(BaseFunction):
             kubeconfig = p.kubeconfig
             output_format = p.output_format
 
-
             # Discover KubeStellar cluster topology
             clusters = await self._discover_kubestellar_topology(
                 kubeconfig, include_wds
@@ -185,14 +184,18 @@ class KubeStellarManagementFunction(BaseFunction):
                     output_format,
                 )
                 return asdict(
-                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                    KubeStellarManagementOutput(
+                        status=result.get("status", "success"), details=result
+                    )
                 )
             elif operation == "policy_analysis":
                 result = await self._analyze_binding_policies(
                     clusters, kubeconfig, output_format
                 )
                 return asdict(
-                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                    KubeStellarManagementOutput(
+                        status=result.get("status", "success"), details=result
+                    )
                 )
             elif operation == "resource_inventory":
                 result = await self._create_resource_inventory(
@@ -204,14 +207,18 @@ class KubeStellarManagementFunction(BaseFunction):
                     output_format,
                 )
                 return asdict(
-                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                    KubeStellarManagementOutput(
+                        status=result.get("status", "success"), details=result
+                    )
                 )
             elif operation == "topology_map":
                 result = await self._create_topology_map(
                     clusters, kubeconfig, output_format
                 )
                 return asdict(
-                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                    KubeStellarManagementOutput(
+                        status=result.get("status", "success"), details=result
+                    )
                 )
             else:
                 err = {"error": f"Unsupported operation: {operation}"}
@@ -272,7 +279,7 @@ class KubeStellarManagementFunction(BaseFunction):
     ) -> Dict[str, Any]:
         """Classify KubeStellar 2024 space type (WDS, ITS, WEC) and gather metadata."""
         try:
-            space_info = {
+            space_info: Dict[str, Any] = {
                 "name": context,
                 "type": "unknown",
                 "cluster": context,
@@ -446,7 +453,7 @@ class KubeStellarManagementFunction(BaseFunction):
     ) -> Dict[str, Any]:
         """Get KubeStellar-specific information for a cluster."""
         try:
-            info = {
+            info: Dict[str, Any] = {
                 "version": None,
                 "components": [],
                 "api_resources": [],
@@ -529,7 +536,7 @@ class KubeStellarManagementFunction(BaseFunction):
     ) -> Dict[str, Any]:
         """Perform deep search across KubeStellar clusters."""
         try:
-            results = {
+            results: Dict[str, Any] = {
                 "status": "success",
                 "operation": "deep_search",
                 "clusters_analyzed": len(clusters),
@@ -696,7 +703,7 @@ class KubeStellarManagementFunction(BaseFunction):
             if result["returncode"] != 0:
                 return ["default"]
 
-            namespaces = []
+            namespaces: List[str] = []
             for line in result["stdout"].strip().split("\n"):
                 if line.startswith("namespace/"):
                     ns_name = line.replace("namespace/", "")
@@ -813,7 +820,7 @@ class KubeStellarManagementFunction(BaseFunction):
         self, cluster_results: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Aggregate resource summary across all clusters."""
-        summary = {
+        summary: Dict[str, Any] = {
             "total_clusters": len(cluster_results),
             "total_resources": 0,
             "resources_by_type": {},
@@ -857,7 +864,7 @@ class KubeStellarManagementFunction(BaseFunction):
     ) -> Dict[str, Any]:
         """Aggregate binding policy information across clusters."""
         try:
-            policies = {
+            policies: Dict[str, Any] = {
                 "total_policies": 0,
                 "policies_by_cluster": {},
                 "policy_details": [],
@@ -879,7 +886,7 @@ class KubeStellarManagementFunction(BaseFunction):
     ) -> List[Dict[str, Any]]:
         """Get binding policies from a cluster."""
         try:
-            policies = []
+            policies: List[Dict[str, Any]] = []
 
             # Try to get binding policies (KubeStellar specific)
             cmd = [
@@ -919,7 +926,7 @@ class KubeStellarManagementFunction(BaseFunction):
     ) -> Dict[str, Any]:
         """Aggregate work status information across clusters."""
         try:
-            statuses = {
+            statuses: Dict[str, Any] = {
                 "total_work_statuses": 0,
                 "statuses_by_cluster": {},
                 "status_details": [],
@@ -941,7 +948,7 @@ class KubeStellarManagementFunction(BaseFunction):
     ) -> List[Dict[str, Any]]:
         """Get work statuses from a cluster."""
         try:
-            statuses = []
+            statuses: List[Dict[str, Any]] = []
 
             cmd = [
                 "kubectl",
@@ -979,7 +986,7 @@ class KubeStellarManagementFunction(BaseFunction):
         self, cluster_results: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Analyze resource placement patterns across clusters."""
-        placement_analysis = {
+        placement_analysis: Dict[str, Any] = {
             "distribution_patterns": {},
             "cross_cluster_resources": {},
             "placement_efficiency": {},
@@ -987,7 +994,7 @@ class KubeStellarManagementFunction(BaseFunction):
         }
 
         # Analyze resource distribution patterns
-        resource_distribution = {}
+        resource_distribution: Dict[str, Any] = {}
         for cluster_name, cluster_result in cluster_results.items():
             if cluster_result.get("status") != "success":
                 continue
@@ -1022,7 +1029,7 @@ class KubeStellarManagementFunction(BaseFunction):
 
     def _create_dependency_map(self, cluster_results: Dict[str, Any]) -> Dict[str, Any]:
         """Create a dependency map of resources across clusters."""
-        dependency_map = {
+        dependency_map: Dict[str, Any] = {
             "cross_cluster_references": {},
             "resource_relationships": {},
             "orphaned_resources": [],
@@ -1090,7 +1097,7 @@ class KubeStellarManagementFunction(BaseFunction):
         """Create comprehensive resource inventory."""
         try:
             # Implementation for resource inventory
-            inventory = {
+            inventory: Dict[str, Any] = {
                 "status": "success",
                 "operation": "resource_inventory",
                 "clusters": len(clusters),
@@ -1124,7 +1131,7 @@ class KubeStellarManagementFunction(BaseFunction):
     ) -> Dict[str, Any]:
         """Create KubeStellar topology map."""
         try:
-            topology = {
+            topology: Dict[str, Any] = {
                 "status": "success",
                 "operation": "topology_map",
                 "control_planes": [],

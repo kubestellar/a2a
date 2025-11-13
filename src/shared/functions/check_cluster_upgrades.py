@@ -68,7 +68,9 @@ class CheckClusterUpgradesFunction(BaseFunction):
 
             upgrade_statuses = await asyncio.gather(
                 *[
-                    self._get_cluster_upgrade_status(cluster, latest_version, kubeconfig)
+                    self._get_cluster_upgrade_status(
+                        cluster, latest_version, kubeconfig
+                    )
                     for cluster in clusters
                 ]
             )
