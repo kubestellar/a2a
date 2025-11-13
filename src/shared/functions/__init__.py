@@ -15,6 +15,7 @@ from src.shared.functions.kubestellar_management import KubeStellarManagementFun
 from src.shared.functions.multicluster_create import MultiClusterCreateFunction
 from src.shared.functions.multicluster_logs import MultiClusterLogsFunction
 from src.shared.functions.namespace_utils import NamespaceUtilsFunction
+from src.shared.functions.check_cluster_upgrades import CheckClusterUpgradesFunction
 
 
 def initialize_functions():
@@ -48,5 +49,8 @@ def initialize_functions():
     # Register GVRC and namespace utilities
     function_registry.register(GVRCDiscoveryFunction())
     function_registry.register(NamespaceUtilsFunction())
+
+    # Register cluster upgrade check function
+    function_registry.register(CheckClusterUpgradesFunction())
 
     # Add more function registrations here as they are created
