@@ -53,7 +53,10 @@ class TestKubeStellarManagementFunction:
             result = await kubestellar_function.execute()
 
             assert result["status"] == "error"
-            assert "no kubestellar clusters discovered" in result["details"]["error"].lower()
+            assert (
+                "no kubestellar clusters discovered"
+                in result["details"]["error"].lower()
+            )
 
     @pytest.mark.asyncio
     async def test_topology_map_operation(self, kubestellar_function):
@@ -87,7 +90,7 @@ class TestKubeStellarManagementFunction:
             mock_discover.return_value = mock_clusters
 
             result = await kubestellar_function.execute(operation="topology_map")
-            
+
             assert result["status"] == "success"
             details = result["details"]
             assert details["operation"] == "topology_map"

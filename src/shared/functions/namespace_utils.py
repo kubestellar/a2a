@@ -21,8 +21,6 @@ class NamespaceResource:
     created: str
 
 
-
-
 @dataclass
 class NamespaceUtilsInput:
     """All parameters accepted by namespace_utils.execute in one bundle."""
@@ -51,7 +49,7 @@ class NamespaceUtilsOutput:
 class NamespaceUtilsFunction(BaseFunction):
     """Function to manage and discover namespace-related operations across clusters."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             name="namespace_utils",
             description="List and count pods, services, deployments and other resources across namespaces and clusters. Use operation='list' to get pod counts and resource information.",
@@ -91,7 +89,6 @@ class NamespaceUtilsFunction(BaseFunction):
             kubeconfig = params.kubeconfig
             remote_context = params.remote_context
             output_format = params.output_format
-
 
             # Discover clusters
             clusters = await self._discover_clusters(kubeconfig, remote_context)
@@ -249,7 +246,12 @@ class NamespaceUtilsFunction(BaseFunction):
                 # Include resources if requested
                 if include_resources:
                     resources = await self._get_namespace_resources(
-                        cluster, ns_name, resource_types, label_selector, resource_name, kubeconfig
+                        cluster,
+                        ns_name,
+                        resource_types,
+                        label_selector,
+                        resource_name,
+                        kubeconfig,
                     )
                     namespace_info["resources"] = resources
 
@@ -377,7 +379,12 @@ class NamespaceUtilsFunction(BaseFunction):
             # Get resources from each namespace
             for namespace in target_namespaces:
                 ns_resources = await self._get_namespace_resources(
-                    cluster, namespace, resource_types, label_selector, resource_name, kubeconfig
+                    cluster,
+                    namespace,
+                    resource_types,
+                    label_selector,
+                    resource_name,
+                    kubeconfig,
                 )
                 resources.extend(ns_resources)
 
@@ -440,7 +447,7 @@ class NamespaceUtilsFunction(BaseFunction):
 
                 if label_selector:
                     cmd.extend(["-l", label_selector])
-                
+
                 if resource_name:
                     cmd.append(resource_name)
                 else:
@@ -496,7 +503,10 @@ class NamespaceUtilsFunction(BaseFunction):
                 import json
 
                 quota_data = json.loads(result["stdout"])
-                return quota_data.get("items", [])
+                items = quota_data.get("items", [])
+                if isinstance(items, list):
+                    return items
+                return []
             return []
 
         except Exception:
@@ -527,7 +537,10 @@ class NamespaceUtilsFunction(BaseFunction):
                 import json
 
                 limit_data = json.loads(result["stdout"])
-                return limit_data.get("items", [])
+                items = limit_data.get("items", [])
+                if isinstance(items, list):
+                    return items
+                return []
             return []
 
         except Exception:

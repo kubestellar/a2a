@@ -40,7 +40,7 @@ class MultiClusterCreateOutput:
 class MultiClusterCreateFunction(BaseFunction):
     """Function to create resources across multiple Kubernetes clusters."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             name="multicluster_create",
             description="Create and deploy Kubernetes workloads (deployments, services, configmaps) across all clusters simultaneously. Use this for global resource creation that should appear on every cluster in your KubeStellar fleet. For targeted deployment to specific clusters, use deploy_to instead.",

@@ -82,9 +82,21 @@ class HelmListFunction(BaseFunction):
         return {
             "type": "object",
             "properties": {
-                "namespace": {"type": "string", "description": "The namespace to list releases in."},
-                "all_namespaces": {"type": "boolean", "description": "List releases in all namespaces."},
-                "kubeconfig": {"type": "string", "description": "Path to the kubeconfig file."},
-                "target_cluster": {"type": "string", "description": "The name of the cluster context."},
+                "namespace": {
+                    "type": "string",
+                    "description": "The namespace to list releases in.",
+                },
+                "all_namespaces": {
+                    "type": "boolean",
+                    "description": "List releases in all namespaces.",
+                },
+                "kubeconfig": {
+                    "type": "string",
+                    "description": "Path to the kubeconfig file.",
+                },
+                "target_cluster": {
+                    "type": "string",
+                    "description": "The name of the cluster context.",
+                },
             },
         }

@@ -5,6 +5,7 @@ from typing import Any, AsyncIterator, Dict, List, Optional, Union
 
 try:
     import google.generativeai as genai
+
     HAS_GEMINI = True
 except ImportError:
     genai = None
@@ -51,9 +52,11 @@ class GeminiProvider(BaseLLMProvider):
         # Initialize Gemini model
         self.model = genai.GenerativeModel(config.model)
 
-    def _convert_messages(self, messages: List[LLMMessage]) -> tuple[List[Dict[str, Any]], Optional[str]]:
+    def _convert_messages(
+        self, messages: List[LLMMessage]
+    ) -> tuple[List[Dict[str, Any]], Optional[str]]:
         """Convert messages to Gemini format.
-        
+
         Returns:
             Tuple of (gemini_messages, system_instruction)
         """
@@ -69,18 +72,17 @@ class GeminiProvider(BaseLLMProvider):
                     # Multiple system messages - combine them
                     system_instruction += f"\n\n{msg.content}"
             elif msg.role == MessageRole.USER:
-                gemini_messages.append({"role": "user", "parts": [{"text": msg.content}]})
+                gemini_messages.append(
+                    {"role": "user", "parts": [{"text": msg.content}]}
+                )
             elif msg.role == MessageRole.ASSISTANT:
                 message = {"role": "model", "parts": [{"text": msg.content}]}
                 if msg.tool_calls:
                     # Convert tool calls to Gemini format
                     for tc in msg.tool_calls:
-                        message["parts"].append({
-                            "function_call": {
-                                "name": tc.name,
-                                "args": tc.arguments
-                            }
-                        })
+                        message["parts"].append(
+                            {"function_call": {"name": tc.name, "args": tc.arguments}}
+                        )
                 gemini_messages.append(message)
             elif msg.role == MessageRole.TOOL:
                 # Gemini doesn't support tool role, convert to user message with tool result format
@@ -90,11 +92,15 @@ class GeminiProvider(BaseLLMProvider):
             elif msg.role == MessageRole.THINKING:
                 # Gemini does not have native thinking, append as annotation
                 if gemini_messages and gemini_messages[-1]["role"] == "model":
-                    gemini_messages[-1]["parts"].append({"text": f"<thinking>\n{msg.content}\n</thinking>"})
+                    gemini_messages[-1]["parts"].append(
+                        {"text": f"<thinking>\n{msg.content}\n</thinking>"}
+                    )
 
         return gemini_messages, system_instruction
 
-    def _convert_tools_to_gemini(self, tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _convert_tools_to_gemini(
+        self, tools: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Convert tools to Gemini format."""
         gemini_tools = []
 
@@ -104,11 +110,13 @@ class GeminiProvider(BaseLLMProvider):
 
             # Gemini expects tools in a specific format
             gemini_tool = {
-                "function_declarations": [{
-                    "name": tool["name"],
-                    "description": tool.get("description", ""),
-                    "parameters": cleaned_schema,
-                }]
+                "function_declarations": [
+                    {
+                        "name": tool["name"],
+                        "description": tool.get("description", ""),
+                        "parameters": cleaned_schema,
+                    }
+                ]
             }
             gemini_tools.append(gemini_tool)
 
@@ -230,8 +238,7 @@ class GeminiProvider(BaseLLMProvider):
         model = self.model
         if system_instruction:
             model = genai.GenerativeModel(
-                self.config.model,
-                system_instruction=system_instruction
+                self.config.model, system_instruction=system_instruction
             )
 
         # Prepare generation config
@@ -246,7 +253,9 @@ class GeminiProvider(BaseLLMProvider):
             gemini_tools = self._convert_tools_to_gemini(tools)
 
         if stream:
-            return self._stream_response(gemini_messages, generation_config, gemini_tools, model, **kwargs)
+            return self._stream_response(
+                gemini_messages, generation_config, gemini_tools, model, **kwargs
+            )
         else:
             try:
                 # Try with tools first
@@ -263,7 +272,10 @@ class GeminiProvider(BaseLLMProvider):
                     )
             except Exception as e:
                 # If tools fail, fall back to no tools
-                if any(keyword in str(e).lower() for keyword in ["tools", "object", "system", "role", "function"]):
+                if any(
+                    keyword in str(e).lower()
+                    for keyword in ["tools", "object", "system", "role", "function"]
+                ):
                     response = await model.generate_content_async(
                         gemini_messages,
                         generation_config=generation_config,
@@ -284,14 +296,23 @@ class GeminiProvider(BaseLLMProvider):
                 thinking_blocks=thinking_blocks,
                 tool_calls=self._parse_tool_calls(response),
                 usage=self._parse_usage(response),
-                raw_response=response.to_dict() if hasattr(response, "to_dict") else None,
+                raw_response=(
+                    response.to_dict() if hasattr(response, "to_dict") else None
+                ),
             )
 
-    async def _stream_response(self, messages: List[Dict[str, Any]], generation_config: Dict[str, Any], tools: Optional[List[Dict[str, Any]]] = None, model = None, **kwargs) -> AsyncIterator[LLMResponse]:
+    async def _stream_response(
+        self,
+        messages: List[Dict[str, Any]],
+        generation_config: Dict[str, Any],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        model=None,
+        **kwargs,
+    ) -> AsyncIterator[LLMResponse]:
         """Stream response from Gemini."""
         if model is None:
             model = self.model
-            
+
         try:
             # Try with tools first
             if tools:
@@ -309,7 +330,10 @@ class GeminiProvider(BaseLLMProvider):
                 )
         except Exception as e:
             # If tools fail, fall back to no tools
-            if any(keyword in str(e).lower() for keyword in ["tools", "object", "system", "role", "function"]):
+            if any(
+                keyword in str(e).lower()
+                for keyword in ["tools", "object", "system", "role", "function"]
+            ):
                 stream = await model.generate_content_async(
                     messages,
                     stream=True,
@@ -324,7 +348,9 @@ class GeminiProvider(BaseLLMProvider):
                 delta = chunk.candidates[0].content.parts[0].text
                 accumulated_content += delta
 
-                content, thinking_blocks = self.parse_thinking_blocks(accumulated_content)
+                content, thinking_blocks = self.parse_thinking_blocks(
+                    accumulated_content
+                )
 
                 yield LLMResponse(
                     content=content,

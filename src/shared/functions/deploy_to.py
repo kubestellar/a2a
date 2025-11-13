@@ -73,12 +73,16 @@ class DeployToFunction(BaseFunction):
         remote_context = params.remote_context
         dry_run = params.dry_run
         list_clusters = params.list_clusters
-        
+
         try:
             # Handle list clusters request
             if list_clusters:
-                list_resp = await self._list_available_clusters(kubeconfig, remote_context)
-                return asdict(DeployToOutput(status=list_resp["status"], details=list_resp))
+                list_resp = await self._list_available_clusters(
+                    kubeconfig, remote_context
+                )
+                return asdict(
+                    DeployToOutput(status=list_resp["status"], details=list_resp)
+                )
 
             # Validate inputs
             if not target_clusters and not cluster_labels:
@@ -111,7 +115,8 @@ class DeployToFunction(BaseFunction):
                     "status": "error",
                     "error": "No clusters match the selection criteria",
                     "available_clusters": [
-                        {"name": c["name"], "context": c["context"]} for c in all_clusters
+                        {"name": c["name"], "context": c["context"]}
+                        for c in all_clusters
                     ],
                 }
                 return asdict(DeployToOutput(status="error", details=err))
@@ -176,7 +181,10 @@ class DeployToFunction(BaseFunction):
             return asdict(DeployToOutput(status=status, details=final_resp))
 
         except Exception as e:
-            err = {"status": "error", "error": f"Failed to deploy to clusters: {str(e)}"}
+            err = {
+                "status": "error",
+                "error": f"Failed to deploy to clusters: {str(e)}",
+            }
             return asdict(DeployToOutput(status="error", details=err))
 
     async def _list_available_clusters(

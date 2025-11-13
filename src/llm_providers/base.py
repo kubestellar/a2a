@@ -1,7 +1,7 @@
 """Base LLM Provider interface."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, AsyncIterator, Dict, List, Optional, Union
 
@@ -64,7 +64,7 @@ class LLMResponse:
     raw_response: Optional[Dict[str, Any]] = None
     usage: Optional[Dict[str, int]] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.thinking_blocks is None:
             self.thinking_blocks = []
         if self.tool_calls is None:
@@ -80,9 +80,9 @@ class ProviderConfig:
     temperature: float = 0.7
     max_tokens: Optional[int] = None
     timeout: int = 60
-    extra_params: Dict[str, Any] = None
+    extra_params: Dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.extra_params is None:
             self.extra_params = {}
 
@@ -95,7 +95,7 @@ class BaseLLMProvider(ABC):
         self.config = config
         self._validate_config()
 
-    def _validate_config(self):
+    def _validate_config(self) -> None:
         """Validate provider configuration."""
         if not self.config.api_key:
             raise ValueError(f"{self.__class__.__name__} requires an API key")

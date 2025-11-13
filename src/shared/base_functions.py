@@ -27,7 +27,7 @@ class BaseFunction(ABC):
 class CreatePlanFunction(BaseFunction):
     """A special function to create a plan of execution."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "create_plan",
             "Creates a plan of steps to execute to fulfill the user's request. Use this when multiple steps are required.",
@@ -61,7 +61,7 @@ class CreatePlanFunction(BaseFunction):
 class FunctionRegistry:
     """Registry to manage all available functions."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._functions: Dict[str, BaseFunction] = {}
 
     def register(self, function: BaseFunction) -> None:
@@ -81,11 +81,11 @@ class FunctionRegistry:
         return {name: func.get_schema() for name, func in self._functions.items()}
 
 
-def async_to_sync(func: Callable) -> Callable:
+def async_to_sync(func: Callable[..., Any]) -> Callable[..., Any]:
     """Convert async function to sync for CLI usage."""
 
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> Any:
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:

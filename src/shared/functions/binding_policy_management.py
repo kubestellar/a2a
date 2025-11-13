@@ -39,12 +39,12 @@ class BindingPolicyManagement(BaseFunction):
         super().__init__(
             name="binding_policy_management",
             description="Fast operations on KubeStellar BindingPolicy objects "
-                        "(list, create, delete, quick-create) against a single WDS."
+            "(list, create, delete, quick-create) against a single WDS.",
         )
 
     async def execute(
         self,
-        operation: str = "list",                     # list | create | delete | quick_create
+        operation: str = "list",  # list | create | delete | quick_create
         wds_context: str = "wds1",
         kubeconfig: str = "",
         # create / delete
@@ -53,7 +53,7 @@ class BindingPolicyManagement(BaseFunction):
         policy_name: str = "",
         # quick-create
         selector_labels: Dict[str, str] | None = None,
-        resources: List[str] | None = None,          # "apps/deployments", "core/namespaces"
+        resources: List[str] | None = None,  # "apps/deployments", "core/namespaces"
         namespaces: List[str] | None = None,
         specific_workloads: List[Dict[str, str]] | None = None,
         **_: Any,
@@ -75,8 +75,10 @@ class BindingPolicyManagement(BaseFunction):
                 namespaces = json.loads(namespaces)
             except json.JSONDecodeError:
                 namespaces = [s.strip() for s in namespaces.split(",") if s.strip()]
+
         def _as_dict(obj):
             return dict(obj) if not isinstance(obj, dict) else obj
+
         def _as_list(obj):
             return list(obj) if not isinstance(obj, list) else obj
 
@@ -87,8 +89,12 @@ class BindingPolicyManagement(BaseFunction):
         if namespaces not in (None, "", []):
             namespaces = _as_list(namespaces)
 
-        if operation == "create" and not (policy_yaml or policy_json) \
-           and selector_labels and resources:
+        if (
+            operation == "create"
+            and not (policy_yaml or policy_json)
+            and selector_labels
+            and resources
+        ):
             operation = "quick_create"
 
         if operation == "list":
@@ -96,10 +102,13 @@ class BindingPolicyManagement(BaseFunction):
 
         if operation == "create":
             if not (policy_yaml or policy_json):
-                return {"status": "error", "error": "policy_yaml or policy_json required"}
+                return {
+                    "status": "error",
+                    "error": "policy_yaml or policy_json required",
+                }
             manifest = policy_yaml or yaml.safe_dump(policy_json, sort_keys=False)
             return await self._kubectl_apply(manifest, wds_context, kubeconfig)
-            
+
         if operation == "delete":
             if not policy_name:
                 return {"status": "error", "error": "policy_name required"}
@@ -120,8 +129,15 @@ class BindingPolicyManagement(BaseFunction):
         return {"status": "error", "error": f"unknown operation {operation}"}
 
     async def _op_list(self, ctx: str, kubeconfig: str) -> Dict[str, Any]:
-        cmd = ["kubectl", "--context", ctx, "get",
-               "bindingpolicies.control.kubestellar.io", "-o", "json"]
+        cmd = [
+            "kubectl",
+            "--context",
+            ctx,
+            "get",
+            "bindingpolicies.control.kubestellar.io",
+            "-o",
+            "json",
+        ]
         if kubeconfig:
             cmd += ["--kubeconfig", kubeconfig]
         ret = await self._run(cmd)
@@ -175,40 +191,60 @@ class BindingPolicyManagement(BaseFunction):
 
         if specific_wl:
             wl = specific_wl[0]
-            bp["metadata"].setdefault("annotations", {})["specificWorkloads"] = ",".join(
-                [wl.get("apiVersion", ""), wl.get("kind", ""),
-                 wl.get("name", ""), wl.get("namespace", "")]
+            bp["metadata"].setdefault("annotations", {})["specificWorkloads"] = (
+                ",".join(
+                    [
+                        wl.get("apiVersion", ""),
+                        wl.get("kind", ""),
+                        wl.get("name", ""),
+                        wl.get("namespace", ""),
+                    ]
+                )
             )
 
         return yaml.safe_dump(bp, sort_keys=False), None
 
     # ───────────────────────── kubectl helpers ─────────────────────────
-    async def _kubectl_apply(self, yaml_body: str, ctx: str, kubeconfig: str) -> Dict[str, Any]:
+    async def _kubectl_apply(
+        self, yaml_body: str, ctx: str, kubeconfig: str
+    ) -> Dict[str, Any]:
         cmd = ["kubectl", "--context", ctx, "apply", "-f", "-"]
         if kubeconfig:
             cmd += ["--kubeconfig", kubeconfig]
         ret = await self._run(cmd, stdin_data=yaml_body.encode())
         if ret["returncode"] != 0:
-           # include both stdout & stderr in the response so the LLM can show it
-           return {
-               "status": "error",
-               "operation": "apply",
-               "stderr": ret["stderr"],
-               "stdout": ret["stdout"],
-               "cmd": " ".join(cmd[:4]) + " -f -",   # truncated for readability
-           }
+            # include both stdout & stderr in the response so the LLM can show it
+            return {
+                "status": "error",
+                "operation": "apply",
+                "stderr": ret["stderr"],
+                "stdout": ret["stdout"],
+                "cmd": " ".join(cmd[:4]) + " -f -",  # truncated for readability
+            }
         status = "success" if ret["returncode"] == 0 else "error"
-        return {"status": status, "operation": "apply", "output": ret["stdout"] or ret["stderr"]}
+        return {
+            "status": status,
+            "operation": "apply",
+            "output": ret["stdout"] or ret["stderr"],
+        }
 
-    async def _kubectl_delete(self, name: str, ctx: str, kubeconfig: str) -> Dict[str, Any]:
+    async def _kubectl_delete(
+        self, name: str, ctx: str, kubeconfig: str
+    ) -> Dict[str, Any]:
         cmd = ["kubectl", "--context", ctx, "delete", "bindingpolicy", name]
         if kubeconfig:
             cmd += ["--kubeconfig", kubeconfig]
         ret = await self._run(cmd)
         status = "success" if ret["returncode"] == 0 else "error"
-        return {"status": status, "operation": "delete", "output": ret["stdout"] or ret["stderr"]}
+        return {
+            "status": status,
+            "operation": "delete",
+            "output": ret["stdout"] or ret["stderr"],
+        }
 
-    async def _run(self, cmd: List[str], stdin_data: bytes | None = None) -> Dict[str, str]:
+    async def _run(
+        self, cmd: List[str], stdin_data: bytes | None = None
+    ) -> Dict[str, str]:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdin=asyncio.subprocess.PIPE if stdin_data else None,
@@ -226,9 +262,12 @@ class BindingPolicyManagement(BaseFunction):
     def _make_result(self, item: Dict[str, Any]) -> BPResult:
         meta = item["metadata"]
         spec = item.get("spec", {})
-        status = "active" if meta.get("generation") == item.get("status", {}).get(
-            "observedGeneration"
-        ) else "inactive"
+        status = (
+            "active"
+            if meta.get("generation")
+            == item.get("status", {}).get("observedGeneration")
+            else "inactive"
+        )
 
         clusters: List[str] = []
         for sel in spec.get("clusterSelectors", []):

@@ -55,7 +55,7 @@ class GVRCDiscoveryOutput:
 class GVRCDiscoveryFunction(BaseFunction):
     """Function to discover Group, Version, Resource, Category information across clusters."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             name="gvrc_discovery",
             description="Discover and inventory all available Kubernetes API resources (pods, services, CRDs, etc.) across clusters. Shows Group/Version/Resource/Category (GVRC) information, API versions, and resource capabilities. Use this to understand what resources are available in your clusters, find custom resources, or check API compatibility across your fleet.",
@@ -359,8 +359,8 @@ class GVRCDiscoveryFunction(BaseFunction):
 
             # Parse the output (labels;annotations)
             parts = result["stdout"].split(";")
-            labels = {}
-            annotations = {}
+            labels: Dict[str, Any] = {}
+            annotations: Dict[str, Any] = {}
 
             if len(parts) > 0 and parts[0].strip():
                 # Parse labels (basic parsing)

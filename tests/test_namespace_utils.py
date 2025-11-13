@@ -345,7 +345,17 @@ class TestNamespaceUtilsFunction:
     ):
         """Test error handling in namespace operations."""
         result = await namespace_function._execute_namespace_operation(
-            mock_clusters[0], "invalid", None, False, "", "", None, False, "", "", "table"
+            mock_clusters[0],
+            "invalid",
+            None,
+            False,
+            "",
+            "",
+            None,
+            False,
+            "",
+            "",
+            "table",
         )
 
         assert result["status"] == "error"
