@@ -61,7 +61,10 @@ class CheckClusterUpgradesFunction(BaseFunction):
 
             clusters = await self._discover_clusters(kubeconfig)
             if not clusters:
-                return {"status": "error", "error": "No clusters discovered"}
+                return CheckClusterUpgradesOutput(
+                    status="success",
+                    summary="No clusters discovered.",
+                ).__dict__
 
             upgrade_statuses = await asyncio.gather(
                 *[
