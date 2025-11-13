@@ -104,14 +104,20 @@ class CheckClusterUpgradesFunction(BaseFunction):
 
         result = await self._run_command(cmd)
         if result["returncode"] != 0:
+            # Return an empty list but log the error or make it accessible for debugging
+            print(f"Error discovering clusters: {result['stderr']}")
             return []
 
-        contexts = json.loads(result["stdout"])["contexts"]
-        return [
-            {"name": context["name"], "context": context["name"]}
-            for context in contexts
-            if "wds" not in context["name"]
-        ]
+        try:
+            contexts = json.loads(result["stdout"])["contexts"]
+            return [
+                {"name": context["name"], "context": context["name"]}
+                for context in contexts
+                if "wds" not in context["name"]
+            ]
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"Error parsing kubectl contexts: {e}")
+            return []
 
     async def _get_cluster_upgrade_status(
         self, cluster: Dict[str, Any], latest_version: str, kubeconfig: str
