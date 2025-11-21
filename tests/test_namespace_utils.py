@@ -125,7 +125,7 @@ class TestNamespaceUtilsFunction:
 
         with patch.object(namespace_function, "_run_command", return_value=mock_result):
             result = await namespace_function._list_namespaces(
-                mock_clusters[0], None, False, "", False, None, "", ""
+                mock_clusters[0], None, False, "", False, None, "", "", ""
             )
 
             assert result["status"] == "success"
@@ -147,7 +147,7 @@ class TestNamespaceUtilsFunction:
 
         with patch.object(namespace_function, "_run_command", return_value=mock_result):
             result = await namespace_function._list_namespaces(
-                mock_clusters[0], ["default"], False, "", False, None, "", ""
+                mock_clusters[0], ["default"], False, "", False, None, "", "", ""
             )
 
             assert result["status"] == "success"
@@ -219,7 +219,7 @@ class TestNamespaceUtilsFunction:
                 return_value=mock_resources,
             ):
                 result = await namespace_function._list_namespace_resources(
-                    mock_clusters[0], None, True, None, "", ""
+                    mock_clusters[0], None, True, None, "", "", ""
                 )
 
                 assert result["status"] == "success"
@@ -261,7 +261,7 @@ class TestNamespaceUtilsFunction:
             namespace_function, "_run_command", side_effect=mock_run_command
         ):
             resources = await namespace_function._get_namespace_resources(
-                mock_clusters[0], "default", ["pods"], "", ""
+                mock_clusters[0], "default", ["pods"], "", "", ""
             )
 
             assert len(resources) == 1
@@ -345,7 +345,7 @@ class TestNamespaceUtilsFunction:
     ):
         """Test error handling in namespace operations."""
         result = await namespace_function._execute_namespace_operation(
-            mock_clusters[0], "invalid", None, False, "", "", None, False, "", "table"
+            mock_clusters[0], "invalid", None, False, "", "", None, False, "", "", "table"
         )
 
         assert result["status"] == "error"

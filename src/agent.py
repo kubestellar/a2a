@@ -403,6 +403,7 @@ class AgentChat:
 
 ## Function Usage Guide:
 - Pod counts → `namespace_utils` with `operation="list"`, `resource_types=["pods"]`, `include_resources=true`, `all_namespaces=true`
+- Specific resource by name → `namespace_utils` with `operation="list-resources"`, `resource_types=["<resource_type>"]`, `resource_name="<resource_name>"`, `all_namespaces=true`
 - Cluster info → `get_kubeconfig` or `deploy_to` with `list_clusters=true`
 - Logs → `multicluster_logs`
 - Resources → `gvrc_discovery`
