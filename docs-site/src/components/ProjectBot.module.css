@@ -23,7 +23,7 @@
 }
 
 .botWindow {
-  background: var(--ifm-background-color);
+  background-color: white;
   color: var(--ifm-font-color-base);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
@@ -34,6 +34,22 @@
   margin-top: 16px;
   overflow: hidden;
   border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+[data-theme='dark'] .botWindow {
+  background-color: var(--ifm-background-surface-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .botWindow {
+    background-color: var(--ifm-background-surface-color);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .botWindow {
+    background-color: white;
+  }
 }
 
 .botHeader {
@@ -312,4 +328,177 @@
     padding: 10px 12px;
     font-size: 0.85rem;
   }
+}
+
+.fullscreen {
+  position: fixed !important;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  width: 420px !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  z-index: 2000 !important;
+  border-radius: 0 !important;
+  box-shadow: 0 0 32px rgba(0,0,0,0.18);
+}
+
+.fullscreen .botWindow {
+  width: 100%;
+  height: 98vh;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.fullscreenButton {
+  display: none;
+}
+@media (min-width: 769px) {
+  .fullscreenButton {
+    display: inline-block;
+    background: transparent;
+    border: none;
+    color: var(--ifm-color-emphasis-600);
+    font-size: 1.3rem;
+    cursor: pointer;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+  .fullscreenButton:hover {
+    background: var(--ifm-hover-overlay);
+    color: var(--ifm-color-primary);
+  }
+}
+@media (max-width: 768px) {
+  .fullscreenButton {
+    display: none !important;
+  }
+  .fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+    right: 0;
+    left: 0;
+    border-radius: 0 !important;
+  }
+}
+
+.messageTime {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--ifm-color-emphasis-500);
+}
+
+.inputContainer {
+  flex: 1;
+  position: relative;
+}
+
+.charCounter {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--ifm-color-emphasis-500);
+  pointer-events: none;
+}
+
+.messageActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  margin-left: 28px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.conversation:hover .messageActions {
+  opacity: 1;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--ifm-color-emphasis-700);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 32px;
+}
+
+.actionButton:hover {
+  background: var(--ifm-color-emphasis-100);
+  border-color: var(--ifm-color-emphasis-400);
+}
+
+.actionButton.copied {
+  background: var(--ifm-color-success-contrast-background);
+  border-color: var(--ifm-color-success);
+  color: var(--ifm-color-success-dark);
+}
+
+.actionIcon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+}
+
+.actionButton span {
+  font-weight: 500;
+}
+
+/* Dark mode support */
+[data-theme='dark'] .actionButton {
+  border-color: var(--ifm-color-emphasis-300);
+  color: var(--ifm-color-emphasis-600);
+}
+
+[data-theme='dark'] .actionButton:hover {
+  background: var(--ifm-color-emphasis-200);
+  border-color: var(--ifm-color-emphasis-500);
+  color: var(--ifm-color-emphasis-800);
+}
+
+[data-theme='dark'] .actionButton.copied {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgb(34, 197, 94);
+  color: rgb(34, 197, 94);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .messageActions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .actionButton {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    min-height: 28px;
+  }
+  
+  .actionIcon {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+/* Smooth animations */
+.actionButton.copied .actionIcon {
+  animation: checkmark 0.3s ease-in-out;
+}
+
+@keyframes checkmark {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }

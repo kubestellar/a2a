@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import styles from "./ProjectBot.module.css";
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
 interface FAQItem {
   q: string;
@@ -53,6 +54,77 @@ const faq: FAQItem[] = [
   }
 ];
 
+// Storage key for localStorage
+const STORAGE_KEY = 'kubestellar-chat-history';
+
+// Gemini API function
+async function fetchGeminiAnswer(apiKey: string, question: string): Promise<string> {
+  if (!apiKey) {
+    return "❌ Gemini API key is not configured. Please contact the administrator.";
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  
+  const prompt = `You are a specialized assistant for KubeStellar A2A, an intelligent orchestrator for multi-cluster Kubernetes operations.
+
+STRICT GUIDELINES:
+- ONLY answer questions about KubeStellar A2A, Kubernetes multi-cluster management, or directly related technologies
+- If asked about unrelated topics, politely redirect: "I'm specifically designed to help with KubeStellar A2A. Please ask about installation, usage, troubleshooting, or Kubernetes multi-cluster topics."
+- Focus on practical, actionable advice
+- Use markdown formatting for code blocks and emphasis
+- Keep responses concise and helpful
+
+CONTEXT: KubeStellar A2A provides:
+- AI-powered automation with natural language interfaces
+- Multi-cluster Kubernetes management with advanced targeting
+- Integration with KubeStellar's WDS (Workload Description Space) and ITS (Inventory & Transport Space)
+- Binding policies for workload placement
+- Helm deployments across clusters
+- CLI and agent-based interfaces
+
+Question: ${question}
+
+Please provide a helpful, accurate response with markdown formatting if needed.`;
+
+  const body = {
+    contents: [{ 
+      parts: [{ text: prompt }] 
+    }],
+    generationConfig: {
+      temperature: 0.7,
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 1024,
+    }
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      return `❌ Unable to get AI response. Please try again or contact support.`;
+    }
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!text) {
+      return "🤖 I couldn't generate a response. Please try rephrasing your question.";
+    }
+    
+    return text;
+  } catch (error) {
+    return "❌ Network error. Please check your connection and try again.";
+  }
+}
+
+// Fallback FAQ function
 function findAnswer(question: string): string {
   const q = question.toLowerCase();
   let bestMatch: FAQItem | null = null;
@@ -61,12 +133,10 @@ function findAnswer(question: string): string {
   for (const item of faq) {
     let score = 0;
     
-    // Check exact question match
     if (q.includes(item.q.toLowerCase())) {
       score += 10;
     }
     
-    // Check keywords
     for (const keyword of item.keywords) {
       if (q.includes(keyword.toLowerCase())) {
         score += keyword.length > 3 ? 3 : 2;
@@ -94,18 +164,112 @@ const quickActions = [
 ];
 
 export default function ProjectBot() {
+  const { siteConfig } = useDocusaurusContext();
+  const geminiApiKey = siteConfig.customFields?.geminiApiKey as string;
+  
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<{q: string, a: string, timestamp: Date}[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [currentlyTyping, setCurrentlyTyping] = useState<string>("");
+  const [isShowingTypingEffect, setIsShowingTypingEffect] = useState(false);
+  const [copiedStates, setCopiedStates] = useState<CopyState>({});
+  
   const historyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const copyToClipboard = async (text: string, messageIndex: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedStates(prev => ({ ...prev, [messageIndex]: true }));
+      
+      // Reset after 2 seconds
+      setTimeout(() => {
+        setCopiedStates(prev => {
+          const newState = { ...prev };
+          delete newState[messageIndex];
+          return newState;
+        });
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
 
   useEffect(() => {
+    try {
+      const savedHistory = localStorage.getItem(STORAGE_KEY);
+      if (savedHistory) {
+        const parsed = JSON.parse(savedHistory);
+        // Convert timestamp strings back to Date objects
+        const historyWithDates = parsed.map((item: any) => ({
+          ...item,
+          timestamp: new Date(item.timestamp)
+        }));
+        setHistory(historyWithDates);
+      }
+    } catch (error) {
+      // Silently handle errors
+    }
+  }, []);
+
+  useEffect(() => {
+    if (history.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      } catch (error) {
+        // Silently handle errors
+      }
+    }
+  }, [history]);
+
+  useEffect(() => {
+    return () => {
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const typeResponse = (text: string, callback: () => void) => {
+    setCurrentlyTyping("");
+    setIsShowingTypingEffect(true);
+    let index = 0;
+    
+
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+    }
+    
+    typingIntervalRef.current = setInterval(() => {
+      setCurrentlyTyping(text.slice(0, index + 1));
+      index++;
+      
+      if (index >= text.length) {
+        if (typingIntervalRef.current) {
+          clearInterval(typingIntervalRef.current);
+          typingIntervalRef.current = null;
+        }
+        setIsShowingTypingEffect(false);
+        setCurrentlyTyping("");
+        callback();
+      }
+    }, 10);
+  };
+
+  // Auto-scroll function
+  const scrollToBottom = () => {
     if (historyRef.current) {
       historyRef.current.scrollTop = historyRef.current.scrollHeight;
     }
-  }, [history]);
+  };
+
+  // Scroll when history changes OR when typing status changes OR during typing effect
+  useEffect(() => {
+    scrollToBottom();
+  }, [history, isTyping, currentlyTyping]);
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -113,31 +277,75 @@ export default function ProjectBot() {
     }
   }, [open]);
 
-  function handleSend(question?: string) {
+  useEffect(() => {
+    if (open && fullscreen) {
+      document.body.classList.add('bot-fullscreen');
+    } else {
+      document.body.classList.remove('bot-fullscreen');
+    }
+    return () => {
+      document.body.classList.remove('bot-fullscreen');
+    };
+  }, [open, fullscreen]);
+
+  // Enhanced handleSend with typing effect
+  async function handleSend(question?: string) {
     const questionText = question || input;
     if (!questionText.trim()) return;
     
-    setIsTyping(true);
+    setHistory(prev => [...prev, {
+      q: questionText,
+      a: "",
+      timestamp: new Date()
+    }]);
     
-    // Simulate typing delay for better UX
-    setTimeout(() => {
-      const answer = findAnswer(questionText);
-      setHistory(prev => [...prev, {
-        q: questionText,
-        a: answer,
-        timestamp: new Date()
-      }]);
-      setInput("");
-      setIsTyping(false);
-    }, 500);
+    setIsTyping(true);
+    setInput("");
+
+    setTimeout(scrollToBottom, 50);
+    
+    let answer = "";
+    
+    try {
+      if (geminiApiKey) {
+        answer = await fetchGeminiAnswer(geminiApiKey, questionText);
+      } else {
+        answer = findAnswer(questionText);
+      }
+    } catch (error) {
+      answer = "❌ An unexpected error occurred. Please try again.";
+    }
+    
+    setIsTyping(false);
+    
+    typeResponse(answer, () => {
+      setHistory(prev => {
+        const newHistory = [...prev];
+        if (newHistory.length > 0) {
+          newHistory[newHistory.length - 1].a = answer;
+        }
+        return newHistory;
+      });
+    });
   }
 
   function handleClear() {
     setHistory([]);
+    // Also clear from localStorage
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      // Silently handle errors
+    }
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
+    }
+    setCurrentlyTyping("");
+    setIsShowingTypingEffect(false);
   }
 
   function formatAnswer(answer: string) {
-    // Simple markdown-like formatting
     return answer
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -147,48 +355,81 @@ export default function ProjectBot() {
   }
 
   return (
-    <div className={styles.botContainer}>
-    <button 
-      className={`${styles.botButton} ${open ? styles.botButtonActive : ''}`}
-      onClick={() => setOpen(true)}
-      aria-label="Open project assistant"
-      style={{ display: open ? 'none' : 'flex' }} // Hide button when chat is open
-    >
-      Ask Assistant
-    </button>
-    
-    {open && (
-      <div className={styles.botWindow}>
-        <div className={styles.botHeader}>
-          <div className={styles.botTitle}>
-            <span className={styles.botIcon}>🤖</span>
-            <strong>KubeStellar Assistant</strong>
-          </div>
-          <div>
-            {history.length > 0 && (
-              <button onClick={handleClear} className={styles.clearButton}>
-                Clear
+    <div className={`${styles.botContainer} ${fullscreen ? styles.fullscreen : ""}`}>
+      <button 
+        className={`${styles.botButton} ${open ? styles.botButtonActive : ''}`}
+        onClick={() => setOpen(true)}
+        aria-label="Open project assistant"
+        style={{ display: open ? 'none' : 'flex' }}
+      >
+        💬 Ask Assistant
+      </button>
+      
+      {open && (
+        <div className={styles.botWindow}>
+          <div className={styles.botHeader}>
+            <div className={styles.botTitle}>
+              <div className={styles.botInfo}>
+                <div className={styles.botName}>KubeStellar Assistant</div>
+                <div className={styles.botStatus}>
+                  {geminiApiKey ? (
+                    <span className={styles.aiEnabled}>  (AI-Powered)</span>
+                  ) : (
+                    <span className={styles.faqMode}>📚 Knowledge Base</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className={styles.botControls}>
+              {history.length > 0 && (
+                <button 
+                  onClick={handleClear} 
+                  className={styles.clearButton}
+                  title="Clear conversation"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                className={styles.fullscreenButton}
+                onClick={() => setFullscreen(f => !f)}
+                aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                title={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              >
+                {fullscreen ? "🗗" : "⛶"}
               </button>
-            )}
-            <button
-              onClick={() => setOpen(false)}
-              className={styles.closeButton}
-              aria-label="Close assistant"
-              title="Close"
-              style={{ marginLeft: '8px' }}
-            >
-              ✕
-            </button>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  setFullscreen(false);
+                }}
+                className={styles.closeButton}
+                aria-label="Close assistant"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
           </div>
-        </div>
-          
+            
           <div className={styles.botHistory} ref={historyRef}>
             {history.length === 0 ? (
               <div className={styles.welcomeMessage}>
                 <div className={styles.welcomeText}>
-                  👋 Hi! I'm here to help you with KubeStellar A2A.
+                  <h3>👋 Welcome to KubeStellar Assistant!</h3>
+                  <p>I'm here to help you with KubeStellar A2A - your intelligent multi-cluster Kubernetes orchestrator.</p>
+                  {geminiApiKey ? (
+                    <div className={styles.aiIndicator}>
+                      ✨ Powered by advanced AI for intelligent responses
+                    </div>
+                  ) : (
+                    <div className={styles.kbIndicator}>
+                      📖 Using curated knowledge base
+                    </div>
+                  )}
                 </div>
                 <div className={styles.quickActions}>
+                  <p className={styles.quickActionsTitle}>Quick actions:</p>
                   {quickActions.map((action, idx) => (
                     <button
                       key={idx}
@@ -205,55 +446,90 @@ export default function ProjectBot() {
                 <div key={idx} className={styles.conversation}>
                   <div className={styles.userMessage}>
                     <div className={styles.messageHeader}>
-                      <span className={styles.userIcon}>👤</span>
+                     <span className={styles.userIcon}>👤</span>
                       <span className={styles.userName}>You</span>
-                    </div>
+                       <span className={styles.messageTime}>
+                        {new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                       </span>
+                      </div>
                     <div className={styles.messageText}>{item.q}</div>
                   </div>
-                  <div className={styles.botMessage}>
-                    <div className={styles.messageHeader}>
-                      <span className={styles.botIcon}>🤖</span>
-                      <span className={styles.botName}>Assistant</span>
+                  {(item.a || isTyping || (isShowingTypingEffect && idx === history.length - 1)) && (
+                    <div className={styles.botMessage}>
+                      <div className={styles.messageHeader}>
+                        <span className={styles.botIcon}>🤖</span>
+                        <span className={styles.botName}>Assistant</span>
+                      </div>
+                      <div className={styles.messageText}>
+                        {item.a ? (
+                          formatAnswer(item.a)
+                        ) : isShowingTypingEffect && idx === history.length - 1 ? (
+                          formatAnswer(currentlyTyping)
+                        ) : (
+                          <div className={styles.typingIndicator}>
+                            <span></span><span></span><span></span>
+                          </div>
+                        )}
+                      </div>
+                      {item.a && (
+                        <div className={styles.messageActions}>
+                          <button 
+                            className={`${styles.actionButton} ${copiedStates[idx] ? styles.copied : ''}`}
+                            onClick={() => copyToClipboard(item.a, idx)}
+                            title={copiedStates[idx] ? "Copied!" : "Copy message"}
+                          >
+                       {copiedStates[idx] ? (
+                              <>
+                                <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <polyline points="20,6 9,17 4,12"></polyline>
+                                </svg>
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                  <path d="m5,9 0,-2a2,2 0 0,1 2,-2h2"></path>
+                                </svg>
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div className={styles.messageText}>
-                      {formatAnswer(item.a)}
-                    </div>
-                  </div>
+                  )}
                 </div>
               ))
             )}
-            
-            {isTyping && (
-              <div className={styles.botMessage}>
-                <div className={styles.messageHeader}>
-                  <span className={styles.botIcon}>🤖</span>
-                  <span className={styles.botName}>Assistant</span>
-                </div>
-                <div className={styles.typingIndicator}>
-                  <span></span><span></span><span></span>
-                </div>
-              </div>
-            )}
           </div>
-          
           <div className={styles.botInputRow}>
+           <div className={styles.inputContainer}>
             <input
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Ask me anything about KubeStellar A2A..."
-              className={styles.botInput}
-              onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
-              disabled={isTyping}
-            />
-            <button 
-              onClick={() => handleSend()} 
-              className={styles.sendButton}
-              disabled={!input.trim() || isTyping}
-            >
-              {isTyping ? '⏳' : '📤'}
-            </button>
-          </div>
+             ref={inputRef}
+             value={input}
+             onChange={e => setInput(e.target.value)}
+             placeholder="Ask me anything about KubeStellar A2A..."
+             className={styles.botInput}
+             onKeyDown={e => e.key === "Enter" && !e.shiftKey && !isTyping && !isShowingTypingEffect && handleSend()}
+             disabled={isTyping || isShowingTypingEffect}
+             maxLength={500}
+              />
+            {input.length > 0 && (
+            <span className={styles.charCounter}>
+            {input.length}/500
+           </span>
+            )}
+         </div>
+         <button 
+         onClick={() => handleSend()} 
+          className={styles.sendButton}
+          disabled={!input.trim() || isTyping || isShowingTypingEffect}
+          title="Send message"
+           >
+         {isTyping || isShowingTypingEffect ? '⏳' : '🚀'}
+         </button>
+         </div>
         </div>
       )}
     </div>

@@ -34,6 +34,7 @@ class NamespaceUtilsInput:
     label_selector: str = ""
     resource_types: Optional[List[str]] = None
     include_resources: bool = False
+    resource_name: str = ""
     kubeconfig: str = ""
     remote_context: str = ""
     output_format: str = "table"
@@ -86,6 +87,7 @@ class NamespaceUtilsFunction(BaseFunction):
             label_selector = params.label_selector
             resource_types = params.resource_types
             include_resources = params.include_resources
+            resource_name = params.resource_name
             kubeconfig = params.kubeconfig
             remote_context = params.remote_context
             output_format = params.output_format
@@ -108,6 +110,7 @@ class NamespaceUtilsFunction(BaseFunction):
                     label_selector,
                     resource_types,
                     include_resources,
+                    resource_name,
                     kubeconfig,
                     output_format,
                 )
@@ -140,6 +143,7 @@ class NamespaceUtilsFunction(BaseFunction):
         label_selector: str,
         resource_types: Optional[List[str]],
         include_resources: bool,
+        resource_name: str,
         kubeconfig: str,
         output_format: str,
     ) -> Dict[str, Any]:
@@ -154,6 +158,7 @@ class NamespaceUtilsFunction(BaseFunction):
                     include_resources,
                     resource_types,
                     label_selector,
+                    resource_name,
                     kubeconfig,
                 )
             elif operation == "get":
@@ -167,6 +172,7 @@ class NamespaceUtilsFunction(BaseFunction):
                     all_namespaces,
                     resource_types,
                     label_selector,
+                    resource_name,
                     kubeconfig,
                 )
             else:
@@ -192,6 +198,7 @@ class NamespaceUtilsFunction(BaseFunction):
         include_resources: bool,
         resource_types: Optional[List[str]],
         label_selector: str,
+        resource_name: str,
         kubeconfig: str,
     ) -> Dict[str, Any]:
         """List namespaces in a cluster."""
@@ -242,7 +249,7 @@ class NamespaceUtilsFunction(BaseFunction):
                 # Include resources if requested
                 if include_resources:
                     resources = await self._get_namespace_resources(
-                        cluster, ns_name, resource_types, label_selector, kubeconfig
+                        cluster, ns_name, resource_types, label_selector, resource_name, kubeconfig
                     )
                     namespace_info["resources"] = resources
 
@@ -346,6 +353,7 @@ class NamespaceUtilsFunction(BaseFunction):
         all_namespaces: bool,
         resource_types: Optional[List[str]],
         label_selector: str,
+        resource_name: str,
         kubeconfig: str,
     ) -> Dict[str, Any]:
         """List resources within namespaces."""
@@ -357,7 +365,7 @@ class NamespaceUtilsFunction(BaseFunction):
             if all_namespaces:
                 # Get all namespaces
                 ns_result = await self._list_namespaces(
-                    cluster, None, True, "", False, None, "", kubeconfig
+                    cluster, None, True, "", False, None, "", "", kubeconfig
                 )
                 if ns_result["status"] == "success":
                     target_namespaces = [ns["name"] for ns in ns_result["namespaces"]]
@@ -369,7 +377,7 @@ class NamespaceUtilsFunction(BaseFunction):
             # Get resources from each namespace
             for namespace in target_namespaces:
                 ns_resources = await self._get_namespace_resources(
-                    cluster, namespace, resource_types, label_selector, kubeconfig
+                    cluster, namespace, resource_types, label_selector, resource_name, kubeconfig
                 )
                 resources.extend(ns_resources)
 
@@ -394,6 +402,7 @@ class NamespaceUtilsFunction(BaseFunction):
         namespace: str,
         resource_types: Optional[List[str]],
         label_selector: str,
+        resource_name: str,
         kubeconfig: str,
     ) -> List[Dict[str, Any]]:
         """Get resources within a specific namespace."""
@@ -424,8 +433,6 @@ class NamespaceUtilsFunction(BaseFunction):
                     namespace,
                     "--context",
                     cluster["context"],
-                    "-o",
-                    "json",
                 ]
 
                 if kubeconfig:
@@ -433,6 +440,11 @@ class NamespaceUtilsFunction(BaseFunction):
 
                 if label_selector:
                     cmd.extend(["-l", label_selector])
+                
+                if resource_name:
+                    cmd.append(resource_name)
+                else:
+                    cmd.extend(["-o", "json"])
 
                 result = await self._run_command(cmd)
                 if result["returncode"] == 0:
@@ -627,6 +639,10 @@ class NamespaceUtilsFunction(BaseFunction):
                     "type": "boolean",
                     "description": "Include resources within namespaces when listing",
                     "default": False,
+                },
+                "resource_name": {
+                    "type": "string",
+                    "description": "Name of the resource to filter by",
                 },
                 "kubeconfig": {
                     "type": "string",
