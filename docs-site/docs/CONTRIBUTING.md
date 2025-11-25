@@ -7,13 +7,13 @@ sidebar_position: 5
 Greetings! 👋 We’re grateful for your interest in contributing to the **A2A project**, part of the [KubeStellar](https://github.com/kubestellar) ecosystem.
 Your contributions — whether raising issues, enhancing documentation, fixing bugs, or improving the UI — are essential to our success.
 
-This document adapts the main [KubeStellar contributing guidelines](https://github.com/kubestellar/kubestellar/blob/main/docs/CONTRIBUTING.md) to A2A, focusing on website, UI, and docs contributions.
+This document adapts the main [KubeStellar contributing guidelines](https://github.com/kubestellar/kubestellar/blob/main/CONTRIBUTING.md) to A2A, focusing on website, UI, and docs contributions.
 
 ---
 
 ## 📌 General Practices
 
-* Please read and follow our [Code of Conduct](https://github.com/kubestellar/community/blob/main/CODE_OF_CONDUCT.md).
+* Please read and follow our [Code of Conduct](https://github.com/kubestellar/kubestellar/blob/main/CODE_OF_CONDUCT.md).
 * Join the discussion on [Slack (KubeStellar-dev)](https://cloud-native.slack.com/archives/C097094RZ3M).
 * Most work happens in GitHub (issues, pull requests, discussions).
 
