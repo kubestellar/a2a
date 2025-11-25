@@ -8,7 +8,7 @@ import string
 import tempfile
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict,List
+from typing import Any, Dict, List
 from urllib.parse import urlparse
 
 from src.shared.base_functions import BaseFunction
