@@ -1,7 +1,7 @@
 """Utility functions for subprocess management and cancellation."""
 
 import asyncio
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 
 async def run_subprocess_with_cancellation(cmd: List[str], stdin_data: Optional[bytes] = None) -> Dict[str, Any]:
