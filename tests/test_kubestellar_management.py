@@ -538,14 +538,14 @@ class TestKubeStellarManagementFunction:
     @pytest.mark.asyncio
     async def test_run_command_exception(self, kubestellar_function):
         """Test command execution with exception."""
+        # The new implementation uses run_shell_command_with_cancellation
+        # which doesn't catch general exceptions, so we expect the exception to propagate
         with patch(
-            "asyncio.create_subprocess_exec", side_effect=Exception("Command failed")
+            "src.shared.utils.run_subprocess_with_cancellation", 
+            side_effect=Exception("Command failed")
         ):
-            result = await kubestellar_function._run_command(["nonexistent"])
-
-            assert result["returncode"] == 1
-            assert result["stdout"] == ""
-            assert "Command failed" in result["stderr"]
+            with pytest.raises(Exception, match="Command failed"):
+                await kubestellar_function._run_command(["nonexistent"])
 
     @pytest.mark.asyncio
     async def test_unsupported_operation(self, kubestellar_function):
