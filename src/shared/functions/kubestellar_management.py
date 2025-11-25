@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 from src.shared.base_functions import BaseFunction
 from src.shared.utils import run_shell_command_with_cancellation
 
+
 @dataclass
 class KubeStellarSpace:
     """KubeStellar space information (WDS/ITS)."""

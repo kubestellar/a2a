@@ -1008,7 +1008,7 @@ For pod counts, respond like this:
                         formatted_items = [self._format_value(item) for item in parsed_list]
                         result = "[" + ", ".join(formatted_items) + "]"
                         return result
-                except:
+                except (ValueError, SyntaxError):
                     pass  # Fall through to string handling
         
         # Handle dictionaries first (most common case)
@@ -1154,7 +1154,7 @@ For pod counts, respond like this:
                                             needs_fix = True
                                     else:
                                         fixed_selectors.append(selector_dict)
-                                except:
+                                except (ValueError, TypeError, json.JSONDecodeError):
                                     # If JSON parsing fails, treat as literal string
                                     fixed_selectors.append(selector)
                             elif isinstance(selector, dict):
