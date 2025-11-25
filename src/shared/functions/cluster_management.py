@@ -8,9 +8,8 @@ Provides cluster registration, labeling, and management capabilities:
 - Update cluster labels
 """
 
-import asyncio
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from src.shared.base_functions import BaseFunction
 from src.shared.utils import run_shell_command_with_cancellation
