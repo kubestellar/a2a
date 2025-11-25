@@ -1,10 +1,10 @@
-"""Namespace management utilities for multi-cluster operations."""
+"""Namespace utilities for multi-cluster Kubernetes management."""
 
-import asyncio
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
 from src.shared.base_functions import BaseFunction
+from src.shared.utils import run_shell_command_with_cancellation
 
 
 @dataclass
@@ -586,20 +586,8 @@ class NamespaceUtilsFunction(BaseFunction):
         )
 
     async def _run_command(self, cmd: List[str]) -> Dict[str, Any]:
-        """Run a shell command asynchronously."""
-        try:
-            process = await asyncio.create_subprocess_exec(
-                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
-
-            return {
-                "returncode": process.returncode,
-                "stdout": stdout.decode(),
-                "stderr": stderr.decode(),
-            }
-        except Exception as e:
-            return {"returncode": 1, "stdout": "", "stderr": str(e)}
+        """Run a shell command asynchronously with cancellation support."""
+        return await run_shell_command_with_cancellation(cmd)
 
     def get_schema(self) -> Dict[str, Any]:
         """Define the JSON schema for function parameters."""
