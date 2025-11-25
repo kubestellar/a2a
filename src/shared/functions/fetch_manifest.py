@@ -6,10 +6,10 @@ import random
 import ssl
 import string
 import tempfile
-from pathlib import Path
-from typing import Any, Dict
-from urllib.parse import urlparse
 import urllib.request
+from pathlib import Path
+from typing import Any, Dict,List
+from urllib.parse import urlparse
 
 from src.shared.base_functions import BaseFunction
 
@@ -128,7 +128,7 @@ class FetchManifestFunction(BaseFunction):
                     # Safely resolve destination with extra error handling
                     try:
                         target_path = self._resolve_destination(destination, download_url)
-                    except Exception as path_error:
+                    except Exception:
                         # Fallback to a safe default path if resolution fails
                         import time
                         timestamp = int(time.time())
@@ -138,14 +138,14 @@ class FetchManifestFunction(BaseFunction):
                     # Ensure parent directory exists
                     try:
                         target_path.parent.mkdir(parents=True, exist_ok=True)
-                    except Exception as mkdir_error:
+                    except Exception:
                         # Fallback to /tmp if directory creation fails
                         target_path = Path("/tmp") / target_path.name
                     
                     # Write the file
                     try:
                         target_path.write_bytes(payload)
-                    except Exception as write_error:
+                    except Exception:
                         # Try with a different filename if write fails
                         import uuid
                         fallback_name = f"fallback_{uuid.uuid4().hex[:8]}.yaml"
@@ -186,8 +186,7 @@ class FetchManifestFunction(BaseFunction):
 
     async def _construct_directory_urls(self, base_url: str, directories: List[str], file_patterns: List[str]) -> List[str]:
         """Construct GitHub raw URLs for directory contents."""
-        import re
-        
+
         # Convert GitHub tree URL to raw URL
         if "tree/" in base_url:
             raw_base = base_url.replace("tree/", "raw/")
