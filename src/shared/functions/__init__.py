@@ -3,10 +3,10 @@
 from src.shared.base_functions import function_registry
 from src.shared.functions.binding_policy_management import BindingPolicyManagement
 from src.shared.functions.check_cluster_upgrades import CheckClusterUpgradesFunction
+from src.shared.functions.cluster_label_management import ClusterLabelManagement
 from src.shared.functions.deploy_to import DeployToFunction
 from src.shared.functions.describe_resource import DescribeResourceFunction
 from src.shared.functions.edit_resource import EditResourceFunction
-from src.shared.functions.get_cluster_labels import GetClusterLabelsFunction
 from src.shared.functions.gvrc_discovery import GVRCDiscoveryFunction
 from src.shared.functions.helm.list import HelmListFunction
 from src.shared.functions.helm.repo import HelmRepoFunction
@@ -44,7 +44,7 @@ def initialize_functions():
     function_registry.register(HelmDeployFunction())
     
     # Register cluster labels helper function
-    function_registry.register(GetClusterLabelsFunction())
+    function_registry.register(ClusterLabelManagement())
 
     # Register GVRC and namespace utilities
     function_registry.register(GVRCDiscoveryFunction())
