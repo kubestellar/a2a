@@ -164,6 +164,24 @@ class HelmDeployFunction(BaseFunction):
             if not all_clusters:
                 return {"status": "error", "error": "No clusters discovered"}
 
+            # KubeStellar Smart Default: Target ITS if WDS context is specified but no target clusters
+            if create_binding_policy and wds_context and not target_clusters and not cluster_labels:
+                # Find ITS clusters - use helper if available, otherwise check names directly
+                def _is_its(name):
+                    lower = name.lower()
+                    return "its" in lower or "hub" in lower
+                
+                # Check if self has the method
+                checker = getattr(self, "_is_its_cluster", _is_its)
+                
+                its_candidates = [c for c in all_clusters if checker(c["name"])]
+                if its_candidates:
+                    # Select the first ITS cluster
+                    target_clusters = [its_candidates[0]["name"]]
+                    print(f"DEBUG: Auto-selected ITS cluster '{target_clusters[0]}' for KubeStellar deployment (wds_context='{wds_context}', create_binding_policy={create_binding_policy})")
+                else:
+                    print(f"DEBUG: No ITS clusters found among {len(all_clusters)} available clusters. Will use all clusters.")
+
             # Filter clusters by names or labels
             selected_clusters = self._filter_clusters(
                 all_clusters, target_clusters, cluster_labels
@@ -1475,3 +1493,5 @@ class HelmDeployFunction(BaseFunction):
                 },
             ],
         }
+
+
