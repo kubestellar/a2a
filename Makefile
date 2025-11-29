@@ -71,7 +71,7 @@ venv:
 install: venv
 ifeq ($(USE_UV),1)
 	@if command -v $(UV) >/dev/null 2>&1; then \
-		$(UV) pip install -e . ; \
+		$(UV) pip install --python $(VENV)/bin/python -e . ; \
 	else \
 		echo "uv not found, falling back to pip" ; \
 		. $(VENV)/bin/activate && $(PIP) install -e . ; \
@@ -83,7 +83,7 @@ endif
 dev: install
 ifeq ($(USE_UV),1)
 	@if command -v $(UV) >/dev/null 2>&1; then \
-		$(UV) pip install -e ".[dev]" ; \
+		$(UV) pip install --python $(VENV)/bin/python -e ".[dev]" ; \
 	else \
 		echo "uv not found, falling back to pip" ; \
 		. $(VENV)/bin/activate && $(PIP) install -e ".[dev]" ; \
@@ -148,5 +148,5 @@ sha256:
 
 clean:
 	rm -rf build dist *.spec
-	rm -rf .pytest_cache **/__pycache__
-
+	rm -rf .pytest_cache
+	find . -name __pycache__ -type d -exec rm -rf {} +
