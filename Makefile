@@ -1,18 +1,7 @@
-# kubestellar-a2a Makefile (repo root)
-VENV := .venv
-PY ?= python3
-USE_UV ?= 1
+# kubestellar-a2a Makefile (using uv CLI directly)
 UV ?= uv
-
-PIP := $(VENV)/bin/pip
-PYTHON := $(VENV)/bin/python
-PYTEST := $(VENV)/bin/pytest
-RUFF := $(VENV)/bin/ruff
-BLACK := $(VENV)/bin/black
-MYPY := $(VENV)/bin/mypy
-BANDIT := $(VENV)/bin/bandit
-SAFETY := $(VENV)/bin/safety
-PYINSTALLER := $(VENV)/bin/pyinstaller
+UV_CACHE_DIR ?= .uv-cache
+export UV_CACHE_DIR
 
 BIN_NAME := kubectl-a2a
 DIST_DIR := dist
@@ -43,75 +32,57 @@ else
 endif
 
 .DEFAULT_GOAL := help
-.PHONY: help venv install dev lint format typecheck test security build-plugin dist-plugin dist-linux dist-darwin dist-windows dist-all sha256 clean
+.PHONY: help install dev lint format typecheck test security build-plugin dist-plugin dist-linux dist-darwin dist-windows dist-all sha256 clean docker-build docker-run docker-shell docker-buildx
 
 help:
-	@echo "Targets:"
-	@echo "  venv          Create virtualenv"
-	@echo "  install       Install package (editable)"
+	@echo "Targets (using uv CLI directly):"
+	@echo "  install       Install package dependencies"
 	@echo "  dev           Install dev dependencies"
-	@echo "  lint          Ruff lint"
-	@echo "  format        Black format"
-	@echo "  typecheck     Mypy type checks"
-	@echo "  test          Pytest + coverage"
-	@echo "  security      Bandit + Safety"
-	@echo "  build-plugin  Build $(BIN_NAME) into dist/"
-	@echo "  dist-plugin   Tar current OS binary to $(PKG_DIR)/$(BIN_NAME)-$(PLAT_TAG).tar.gz"
-	@echo "  dist-linux    Tar Linux binary to $(PKG_DIR)"
-	@echo "  dist-darwin   Tar macOS binary to $(PKG_DIR)"
-	@echo "  dist-windows  Tar Windows binary to $(PKG_DIR)"
-	@echo "  dist-all      Run all dist-* tar targets"
-	@echo "  sha256        Print SHA256 for tarballs in $(PKG_DIR)"
-	@echo "  clean         Remove build/dist/spec and caches"
+	@echo "  lint          Run ruff linting"
+	@echo "  format        Format code with black"
+	@echo "  typecheck     Type check with mypy"
+	@echo "  test          Run tests with pytest"
+	@echo "  security      Security checks with bandit and safety"
+	@echo "  build-plugin  Build $(BIN_NAME) binary"
+	@echo "  dist-plugin   Package binary to tarball"
+	@echo "  dist-linux    Package Linux binary"
+	@echo "  dist-darwin   Package macOS binary"
+	@echo "  dist-windows  Package Windows binary"
+	@echo "  dist-all      Package all platforms"
+	@echo "  sha256        Generate checksums"
+	@echo "  clean         Clean build artifacts"
+	@echo "  docker-build  Build Docker image"
+	@echo "  docker-run    Run Docker image"
+	@echo "  docker-shell  Shell into Docker image"
+	@echo "  docker-buildx Multi-arch Docker build"
 
-venv:
-	$(PY) -m venv $(VENV)
-	. $(VENV)/bin/activate && $(PIP) install --upgrade pip
+install:
+	@command -v $(UV) >/dev/null 2>&1 || (echo "uv is required. Install from https://astral.sh/uv" && exit 1)
+	$(UV) sync --locked
 
-install: venv
-ifeq ($(USE_UV),1)
-	@if command -v $(UV) >/dev/null 2>&1; then \
-		$(UV) pip install --python $(VENV)/bin/python -e . ; \
-	else \
-		echo "uv not found, falling back to pip" ; \
-		. $(VENV)/bin/activate && $(PIP) install -e . ; \
-	fi
-else
-	. $(VENV)/bin/activate && $(PIP) install -e .
-endif
-
-dev: install
-ifeq ($(USE_UV),1)
-	@if command -v $(UV) >/dev/null 2>&1; then \
-		$(UV) pip install --python $(VENV)/bin/python -e ".[dev]" ; \
-	else \
-		echo "uv not found, falling back to pip" ; \
-		. $(VENV)/bin/activate && $(PIP) install -e ".[dev]" ; \
-	fi
-else
-	. $(VENV)/bin/activate && $(PIP) install -e ".[dev]"
-endif
+dev:
+	$(UV) sync --locked --group dev
 
 lint: dev
-	$(RUFF) check .
+	$(UV) run ruff check .
 
 format: dev
-	$(BLACK) .
+	$(UV) run black .
 
 typecheck: dev
-	$(MYPY) src
+	$(UV) run mypy src
 
 test: dev
-	$(PYTEST) -q --cov=src --cov-report=term-missing
+	$(UV) run pytest -q --cov=src --cov-report=term-missing
 
 security: dev
-	$(BANDIT) -r src tests || true
-	$(SAFETY) check --full-report || true
+	$(UV) run bandit -r src tests || true
+	$(UV) run safety check --full-report || true
 
-# Build kubectl-a2a into dist/
+# Build kubectl-a2a binary
 build-plugin: dev
-	@which $(PYINSTALLER) >/dev/null 2>&1 || (. $(VENV)/bin/activate && $(PIP) install pyinstaller)
-	$(PYINSTALLER) --onefile --name $(BIN_NAME) --distpath $(DIST_DIR) --workpath build packaging/entry_kubectl_a2a.py
+	$(UV) pip install pyinstaller
+	$(UV) run pyinstaller --onefile --name $(BIN_NAME) --distpath $(DIST_DIR) --workpath build packaging/entry_kubectl_a2a.py
 
 # Create tarball for current OS binary
 dist-plugin: build-plugin
@@ -141,12 +112,29 @@ dist-all: dist-linux dist-darwin dist-windows
 sha256:
 	@echo "SHA256 checksums for tarballs in $(PKG_DIR):"
 	@if command -v sha256sum >/dev/null 2>&1; then \
-	  sha256sum $(PKG_DIR)/*.tar.gz || true; \
+	  sha256sum $(PKG_DIR)/*.tar.gz 2>/dev/null || echo "No tarballs found"; \
 	else \
-	  shasum -a 256 $(PKG_DIR)/*.tar.gz || true; \
+	  shasum -a 256 $(PKG_DIR)/*.tar.gz 2>/dev/null || echo "No tarballs found"; \
 	fi
 
 clean:
 	rm -rf build dist *.spec
-	rm -rf .pytest_cache
-	find . -name __pycache__ -type d -exec rm -rf {} +
+	rm -rf .pytest_cache .ruff_cache
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+# Docker helpers
+DOCKER_IMAGE ?= kubestellar/a2a
+DOCKER_TAG ?= uv
+ARGS ?= --help
+
+docker-build:
+	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+
+docker-run:
+	docker run --rm $(DOCKER_IMAGE):$(DOCKER_TAG) $(ARGS)
+
+docker-shell:
+	docker run --rm -it --entrypoint sh $(DOCKER_IMAGE):$(DOCKER_TAG)
+
+docker-buildx:
+	docker buildx build --platform linux/amd64,linux/arm64 -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
