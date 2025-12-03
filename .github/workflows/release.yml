@@ -138,47 +138,47 @@ jobs:
           WINDOWS_AMD64=$(checksum windows amd64)
 
           cat > kubestellar.yaml <<'YAML'
-apiVersion: krew.googlecontainertools.github.com/v1alpha2
-kind: Plugin
-metadata:
-  name: kubestellar
-spec:
-  version: REPLACE_VERSION
-  homepage: https://github.com/kubestellar/a2a
-  shortDescription: KubeStellar A2A multi-cluster management agent
-  description: |
-    Provides kubectl plugin commands for the KubeStellar Agent (A2A)
-    to execute multi-cluster tasks, discovery, policy analysis, and
-    more via `kubectl a2a`.
-  platforms:
-    - selector:
-        matchLabels:
-          os: linux
-          arch: amd64
-      uri: REPLACE_BASE/kubectl-kubestellar-linux-amd64.tar.gz
-      sha256: REPLACE_SHA_LINUX_AMD64
-      bin: kubectl-kubestellar
-    - selector:
-        matchLabels:
-          os: darwin
-          arch: amd64
-      uri: REPLACE_BASE/kubectl-kubestellar-darwin-amd64.tar.gz
-      sha256: REPLACE_SHA_DARWIN_AMD64
-      bin: kubectl-kubestellar
-    - selector:
-        matchLabels:
-          os: darwin
-          arch: arm64
-      uri: REPLACE_BASE/kubectl-kubestellar-darwin-arm64.tar.gz
-      sha256: REPLACE_SHA_DARWIN_ARM64
-      bin: kubectl-kubestellar
-    - selector:
-        matchLabels:
-          os: windows
-          arch: amd64
-      uri: REPLACE_BASE/kubectl-kubestellar-windows-amd64.tar.gz
-      sha256: REPLACE_SHA_WINDOWS_AMD64
-      bin: kubectl-kubestellar.exe
+          apiVersion: krew.googlecontainertools.github.com/v1alpha2
+          kind: Plugin
+          metadata:
+            name: kubestellar
+          spec:
+            version: REPLACE_VERSION
+            homepage: https://github.com/kubestellar/a2a
+            shortDescription: KubeStellar A2A multi-cluster management agent
+            description: |
+              Provides kubectl plugin commands for the KubeStellar Agent (A2A)
+              to execute multi-cluster tasks, discovery, policy analysis, and
+              more via `kubectl kubestellar`.
+            platforms:
+              - selector:
+                  matchLabels:
+                    os: linux
+                    arch: amd64
+                uri: REPLACE_BASE/kubectl-kubestellar-linux-amd64.tar.gz
+                sha256: REPLACE_SHA_LINUX_AMD64
+                bin: kubectl-kubestellar
+              - selector:
+                  matchLabels:
+                    os: darwin
+                    arch: amd64
+                uri: REPLACE_BASE/kubectl-kubestellar-darwin-amd64.tar.gz
+                sha256: REPLACE_SHA_DARWIN_AMD64
+                bin: kubectl-kubestellar
+              - selector:
+                  matchLabels:
+                    os: darwin
+                    arch: arm64
+                uri: REPLACE_BASE/kubectl-kubestellar-darwin-arm64.tar.gz
+                sha256: REPLACE_SHA_DARWIN_ARM64
+                bin: kubectl-kubestellar
+              - selector:
+                  matchLabels:
+                    os: windows
+                    arch: amd64
+                uri: REPLACE_BASE/kubectl-kubestellar-windows-amd64.tar.gz
+                sha256: REPLACE_SHA_WINDOWS_AMD64
+                bin: kubectl-kubestellar.exe
 YAML
 
           BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"

@@ -10,6 +10,8 @@ ENV/
 .venv
 dist/
 build/
+release/
+kubectl-a2a.spec
 *.egg-info/
 .eggs/
 .pytest_cache/
