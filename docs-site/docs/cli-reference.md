@@ -2,9 +2,14 @@
 sidebar_position: 4
 ---
 
-# CLI Reference
+# CLI and kubectl Plugin Reference
 
 The KubeStellar CLI provides powerful command-line access for Kubernetes multi-cluster management.
+
+In addition to the `kubestellar` CLI, you can use KubeStellar as a kubectl plugin via executables named `kubectl-<name>` on your PATH.
+
+- Primary plugin name: `kubestellar` (binary and Krew). Executable: `kubectl-kubestellar` → usage: `kubectl kubestellar ...`.
+- Python-installed alias: `a2a`. Executable: `kubectl-a2a` → usage: `kubectl a2a ...`.
 
 ```
 ╭─────────────────────────────────────────────────────────────────────────────────────────────╮
@@ -84,6 +89,19 @@ Agent commands:
 - `clear` - Clear conversation history
 - `provider <name>` - Switch AI provider
 - `exit` - Exit the agent
+
+## kubectl Plugin Examples
+
+```bash
+kubectl kubestellar --help
+kubectl kubestellar list-functions
+kubectl kubestellar execute kubestellar_management -P operation=deep_search
+
+# alias
+kubectl a2a providers
+```
+
+Install methods are detailed in “Getting Started → Installation”. For Krew, use the `kubestellar.yaml` manifest attached to a release, or submit it to the central krew-index to enable `kubectl krew install kubestellar`.
 
 ## Available Functions
 
