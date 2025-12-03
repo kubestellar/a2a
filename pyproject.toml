@@ -33,6 +33,7 @@ dev = [
 [project.scripts]
 kubestellar = "src.cli:main"
 kubestellar-mcp = "src.mcp.server:main"
+kubectl-a2a = "src.cli:main"
 
 [build-system]
 requires = ["hatchling"]

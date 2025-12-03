@@ -94,7 +94,6 @@ class MultiClusterLogsFunction(BaseFunction):
             remote_context = params.remote_context
             max_log_requests = params.max_log_requests
 
-
             if (
                 not pod_name
                 and not resource_selector
@@ -105,8 +104,6 @@ class MultiClusterLogsFunction(BaseFunction):
                     "error": "Either pod_name, resource_selector, label_selector, or all_namespaces must be specified",
                 }
                 return asdict(MultiClusterLogsOutput(status="error", details=err))
-
-
 
             # Discover clusters
             clusters = await self._discover_clusters(kubeconfig, remote_context)
@@ -142,7 +139,9 @@ class MultiClusterLogsFunction(BaseFunction):
                     max_log_requests,
                 )
                 return asdict(
-                    MultiClusterLogsOutput(status=resp.get("status", "success"), details=resp)
+                    MultiClusterLogsOutput(
+                        status=resp.get("status", "success"), details=resp
+                    )
                 )
             else:
                 resp = await self._get_logs_from_clusters(
@@ -162,7 +161,9 @@ class MultiClusterLogsFunction(BaseFunction):
                     kubeconfig,
                 )
                 return asdict(
-                    MultiClusterLogsOutput(status=resp.get("status", "success"), details=resp)
+                    MultiClusterLogsOutput(
+                        status=resp.get("status", "success"), details=resp
+                    )
                 )
 
         except Exception as e:

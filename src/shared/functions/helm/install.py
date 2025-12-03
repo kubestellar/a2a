@@ -48,10 +48,10 @@ class HelmInstallFunction(BaseFunction):
             params = HelmInstallParams(**valid_kwargs)
 
             cmd = ["helm", "install"]
-            
+
             release_name = params.release_name or f"{params.chart_name}-release"
             cmd.append(release_name)
-            
+
             cmd.append(params.chart_name)
 
             if params.repository_url:
@@ -79,7 +79,7 @@ class HelmInstallFunction(BaseFunction):
             cmd_duration = time.perf_counter() - cmd_start_time
 
             total_duration = time.perf_counter() - start_time
-            
+
             debug_info = {
                 "command_executed": " ".join(cmd),
                 "total_tool_duration_seconds": f"{total_duration:.4f}",
@@ -87,7 +87,11 @@ class HelmInstallFunction(BaseFunction):
             }
 
             if result["returncode"] == 0:
-                return {"status": "success", "output": result["stdout"], "debug": debug_info}
+                return {
+                    "status": "success",
+                    "output": result["stdout"],
+                    "debug": debug_info,
+                }
             else:
                 return {
                     "status": "error",
@@ -97,7 +101,11 @@ class HelmInstallFunction(BaseFunction):
 
         except Exception as e:
             total_duration = time.perf_counter() - start_time
-            return {"status": "error", "error": str(e), "debug": {"total_tool_duration_seconds": f"{total_duration:.4f}"}}
+            return {
+                "status": "error",
+                "error": str(e),
+                "debug": {"total_tool_duration_seconds": f"{total_duration:.4f}"},
+            }
 
     async def _run_command(self, cmd: List[str]) -> Dict[str, Any]:
         """Run a shell command asynchronously."""
@@ -119,17 +127,51 @@ class HelmInstallFunction(BaseFunction):
         return {
             "type": "object",
             "properties": {
-                "chart_name": {"type": "string", "description": "The name of the chart to install."},
-                "release_name": {"type": "string", "description": "The name of the release."},
-                "chart_version": {"type": "string", "description": "The version of the chart to install."},
-                "repository_url": {"type": "string", "description": "The URL of the chart repository."},
-                "namespace": {"type": "string", "description": "The namespace to install the chart in."},
-                "values_file": {"type": "string", "description": "Path to a values file."},
-                "set_values": {"type": "array", "items": {"type": "string"}, "description": "Set values on the command line."},
-                "create_namespace": {"type": "boolean", "description": "Create the namespace if it does not exist."},
-                "wait": {"type": "boolean", "description": "Wait for the release to be deployed."},
-                "kubeconfig": {"type": "string", "description": "Path to the kubeconfig file."},
-                "target_cluster": {"type": "string", "description": "The name of the cluster context to install to."},
+                "chart_name": {
+                    "type": "string",
+                    "description": "The name of the chart to install.",
+                },
+                "release_name": {
+                    "type": "string",
+                    "description": "The name of the release.",
+                },
+                "chart_version": {
+                    "type": "string",
+                    "description": "The version of the chart to install.",
+                },
+                "repository_url": {
+                    "type": "string",
+                    "description": "The URL of the chart repository.",
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "The namespace to install the chart in.",
+                },
+                "values_file": {
+                    "type": "string",
+                    "description": "Path to a values file.",
+                },
+                "set_values": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Set values on the command line.",
+                },
+                "create_namespace": {
+                    "type": "boolean",
+                    "description": "Create the namespace if it does not exist.",
+                },
+                "wait": {
+                    "type": "boolean",
+                    "description": "Wait for the release to be deployed.",
+                },
+                "kubeconfig": {
+                    "type": "string",
+                    "description": "Path to the kubeconfig file.",
+                },
+                "target_cluster": {
+                    "type": "string",
+                    "description": "The name of the cluster context to install to.",
+                },
             },
             "required": ["chart_name"],
         }

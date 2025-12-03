@@ -4,19 +4,21 @@ import asyncio
 from typing import Any, Dict, List, Optional
 
 
-async def run_subprocess_with_cancellation(cmd: List[str], stdin_data: Optional[bytes] = None) -> Dict[str, Any]:
+async def run_subprocess_with_cancellation(
+    cmd: List[str], stdin_data: Optional[bytes] = None
+) -> Dict[str, Any]:
     """
     Run a subprocess with proper cancellation support.
-    
+
     When the task is cancelled (e.g., by Ctrl+C), the subprocess will be terminated.
-    
+
     Args:
         cmd: Command to execute as a list of strings
         stdin_data: Optional data to send to stdin
-        
+
     Returns:
         Dictionary with returncode, stdout, and stderr
-        
+
     Raises:
         asyncio.CancelledError: If the task is cancelled
     """
@@ -26,7 +28,7 @@ async def run_subprocess_with_cancellation(cmd: List[str], stdin_data: Optional[
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    
+
     try:
         stdout, stderr = await process.communicate(input=stdin_data)
         return {
@@ -56,10 +58,10 @@ async def run_shell_command_with_cancellation(cmd: List[str]) -> Dict[str, Any]:
     """
     Run a shell command with proper cancellation support.
     This is a convenience wrapper for run_subprocess_with_cancellation.
-    
+
     Args:
         cmd: Command to execute as a list of strings
-        
+
     Returns:
         Dictionary with returncode, stdout, and stderr
     """

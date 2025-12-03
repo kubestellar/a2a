@@ -17,7 +17,7 @@ KubeStellar Deployment Flow:
 2. Create BindingPolicy in WDS cluster (e.g., wds1) with cluster selectors
 3. KubeStellar automatically propagates workloads to WECs matching the selectors
 
-Example for KubeStellar deployment: 
+Example for KubeStellar deployment:
     helm_deploy(
         chart_name="nginx",
         repository_url="https://charts.bitnami.com/bitnami",
@@ -28,7 +28,7 @@ Example for KubeStellar deployment:
         wds_context="wds1",  # WDS cluster for policy
         cluster_selector_labels={"location-group": "edge"}  # Selects WECs
     )
-    
+
 To check cluster labels:
     kubectl get managedclusters -A --show-labels
 """
@@ -45,7 +45,7 @@ from src.shared.base_functions import BaseFunction
 
 class HelmDeployFunction(BaseFunction):
     """Multi-cluster Helm deployment with KubeStellar integration.
-    
+
     Features:
     - Parallel deployment across multiple clusters
     - Automatic KubeStellar resource labeling and BindingPolicy creation
@@ -97,7 +97,7 @@ class HelmDeployFunction(BaseFunction):
     ) -> Dict[str, Any]:
         """
         Deploy Helm charts across multiple clusters with KubeStellar integration.
-        
+
         Process: discover clusters → prepare labels → execute Helm operation → create BindingPolicy
         Supports cluster-specific configurations and automatic KubeStellar resource management.
 
@@ -165,22 +165,31 @@ class HelmDeployFunction(BaseFunction):
                 return {"status": "error", "error": "No clusters discovered"}
 
             # KubeStellar Smart Default: Target ITS if WDS context is specified but no target clusters
-            if create_binding_policy and wds_context and not target_clusters and not cluster_labels:
+            if (
+                create_binding_policy
+                and wds_context
+                and not target_clusters
+                and not cluster_labels
+            ):
                 # Find ITS clusters - use helper if available, otherwise check names directly
                 def _is_its(name):
                     lower = name.lower()
                     return "its" in lower or "hub" in lower
-                
+
                 # Check if self has the method
                 checker = getattr(self, "_is_its_cluster", _is_its)
-                
+
                 its_candidates = [c for c in all_clusters if checker(c["name"])]
                 if its_candidates:
                     # Select the first ITS cluster
                     target_clusters = [its_candidates[0]["name"]]
-                    print(f"DEBUG: Auto-selected ITS cluster '{target_clusters[0]}' for KubeStellar deployment (wds_context='{wds_context}', create_binding_policy={create_binding_policy})")
+                    print(
+                        f"DEBUG: Auto-selected ITS cluster '{target_clusters[0]}' for KubeStellar deployment (wds_context='{wds_context}', create_binding_policy={create_binding_policy})"
+                    )
                 else:
-                    print(f"DEBUG: No ITS clusters found among {len(all_clusters)} available clusters. Will use all clusters.")
+                    print(
+                        f"DEBUG: No ITS clusters found among {len(all_clusters)} available clusters. Will use all clusters."
+                    )
 
             # Filter clusters by names or labels
             selected_clusters = self._filter_clusters(
@@ -196,22 +205,30 @@ class HelmDeployFunction(BaseFunction):
                         for c in all_clusters
                     ],
                 }
-                
+
             # Validate KubeStellar deployment pattern
             if create_binding_policy and wds_context:
                 # Check if deploying to ITS cluster
-                its_clusters = [c for c in selected_clusters if self._is_its_cluster(c["name"])]
-                wec_clusters = [c for c in selected_clusters if self._is_wec_cluster(c["name"])]
-                
+                its_clusters = [
+                    c for c in selected_clusters if self._is_its_cluster(c["name"])
+                ]
+                wec_clusters = [
+                    c for c in selected_clusters if self._is_wec_cluster(c["name"])
+                ]
+
                 if wec_clusters and not its_clusters:
                     return {
                         "status": "error",
                         "error": "KubeStellar deployments should target ITS cluster (e.g., its1) not WEC clusters directly",
                         "suggestion": "Use target_clusters=['its1'] and cluster_selector_labels to select WECs",
-                        "its_clusters": [c["name"] for c in all_clusters if self._is_its_cluster(c["name"])],
-                        "wec_clusters": [c["name"] for c in wec_clusters]
+                        "its_clusters": [
+                            c["name"]
+                            for c in all_clusters
+                            if self._is_its_cluster(c["name"])
+                        ],
+                        "wec_clusters": [c["name"] for c in wec_clusters],
                     }
-                    
+
                 if len(selected_clusters) > 1 and operation in ["install", "upgrade"]:
                     # Warn if deploying to multiple clusters with KubeStellar
                     self._log_warning(
@@ -571,11 +588,13 @@ class HelmDeployFunction(BaseFunction):
                         result_status = "success"
                     else:
                         result_status = "error"
-                    
+
                     # Create result dict without overwriting status
-                    result_info = {k: v for k, v in release_info.items() if k != "status"}
+                    result_info = {
+                        k: v for k, v in release_info.items() if k != "status"
+                    }
                     result_info["helm_status"] = release_info.get("status", "unknown")
-                    
+
                     namespace_results[namespace] = {
                         "status": result_status,
                         "output": result["stdout"],
@@ -1227,7 +1246,7 @@ class HelmDeployFunction(BaseFunction):
             or "-wds-" in lower_name
             or "_wds_" in lower_name
         )
-        
+
     def _is_its_cluster(self, cluster_name: str) -> bool:
         """Check if cluster is an ITS (Inventory & Template Space) cluster."""
         lower_name = cluster_name.lower()
@@ -1236,16 +1255,19 @@ class HelmDeployFunction(BaseFunction):
             or "-its-" in lower_name
             or "_its_" in lower_name
         )
-        
+
     def _is_wec_cluster(self, cluster_name: str) -> bool:
         """Check if cluster is a WEC (Workload Execution Cluster)."""
         # WEC clusters are typically named cluster1, cluster2, etc.
         # They are not WDS or ITS clusters
-        return not (self._is_wds_cluster(cluster_name) or self._is_its_cluster(cluster_name))
-        
+        return not (
+            self._is_wds_cluster(cluster_name) or self._is_its_cluster(cluster_name)
+        )
+
     def _log_warning(self, message: str) -> None:
         """Log a warning message."""
         import sys
+
         print(f"WARNING: {message}", file=sys.stderr)
 
     async def _resolve_target_namespaces(
@@ -1493,5 +1515,3 @@ class HelmDeployFunction(BaseFunction):
                 },
             ],
         }
-
-

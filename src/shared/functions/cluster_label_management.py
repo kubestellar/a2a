@@ -19,7 +19,7 @@ class ClusterLabelManagement(BaseFunction):
     def __init__(self) -> None:
         super().__init__(
             name="cluster_label_management",
-            description="Add or update labels on a ManagedCluster object."
+            description="Add or update labels on a ManagedCluster object.",
         )
 
     # ────────────────────────── public entry ──────────────────────────
@@ -28,14 +28,17 @@ class ClusterLabelManagement(BaseFunction):
         cluster_name: str,
         labels: Dict[str, str] | None = None,
         remove_labels: List[str] | None = None,
-        kube_context: str = "its1",        # default is ITS / OCM hub
+        kube_context: str = "its1",  # default is ITS / OCM hub
         kubeconfig: str = "",
         **_: Any,
     ) -> Dict[str, Any]:
         if not cluster_name:
             return {"status": "error", "error": "cluster_name is required"}
         if not labels and not remove_labels:
-            return {"status": "error", "error": "labels or remove_labels must be provided"}
+            return {
+                "status": "error",
+                "error": "labels or remove_labels must be provided",
+            }
 
         label_args: List[str] = []
         if labels:
@@ -43,9 +46,14 @@ class ClusterLabelManagement(BaseFunction):
         if remove_labels:
             label_args += [f"{key}-" for key in remove_labels]
         cmd = [
-            "kubectl", "--context", kube_context,
-            "label", "managedcluster", cluster_name,
-            *label_args, "--overwrite",
+            "kubectl",
+            "--context",
+            kube_context,
+            "label",
+            "managedcluster",
+            cluster_name,
+            *label_args,
+            "--overwrite",
         ]
         if kubeconfig:
             cmd += ["--kubeconfig", kubeconfig]

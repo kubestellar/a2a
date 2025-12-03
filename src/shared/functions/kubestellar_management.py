@@ -151,7 +151,6 @@ class KubeStellarManagementFunction(BaseFunction):
             kubeconfig = p.kubeconfig
             output_format = p.output_format
 
-
             # Discover KubeStellar cluster topology
             clusters = await self._discover_kubestellar_topology(
                 kubeconfig, include_wds
@@ -181,14 +180,18 @@ class KubeStellarManagementFunction(BaseFunction):
                     output_format,
                 )
                 return asdict(
-                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                    KubeStellarManagementOutput(
+                        status=result.get("status", "success"), details=result
+                    )
                 )
             elif operation == "policy_analysis":
                 result = await self._analyze_binding_policies(
                     clusters, kubeconfig, output_format
                 )
                 return asdict(
-                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                    KubeStellarManagementOutput(
+                        status=result.get("status", "success"), details=result
+                    )
                 )
             elif operation == "resource_inventory":
                 result = await self._create_resource_inventory(
@@ -200,14 +203,18 @@ class KubeStellarManagementFunction(BaseFunction):
                     output_format,
                 )
                 return asdict(
-                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                    KubeStellarManagementOutput(
+                        status=result.get("status", "success"), details=result
+                    )
                 )
             elif operation == "topology_map":
                 result = await self._create_topology_map(
                     clusters, kubeconfig, output_format
                 )
                 return asdict(
-                    KubeStellarManagementOutput(status=result.get("status", "success"), details=result)
+                    KubeStellarManagementOutput(
+                        status=result.get("status", "success"), details=result
+                    )
                 )
             else:
                 err = {"error": f"Unsupported operation: {operation}"}
@@ -1246,5 +1253,3 @@ class KubeStellarManagementFunction(BaseFunction):
             },
             "required": [],
         }
-        
-        
