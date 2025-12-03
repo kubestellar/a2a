@@ -12,9 +12,6 @@ on:
         description: "Tag to release (e.g., v0.1.0). If empty, uses GITHUB_REF_NAME."
         required: false
         default: ""
-  # Also run when a GitHub Release is published from the UI
-  release:
-    types: [published]
 
 permissions:
   contents: write
@@ -70,9 +67,12 @@ jobs:
           if [[ "${{ matrix.os }}" == "windows" ]]; then
             BIN_NAME="kubectl-kubestellar.exe"
           fi
+          
           cp "dist/${BIN_NAME}" "release/${BIN_NAME}"
+          
           ARCHIVE="kubectl-kubestellar-${{ matrix.os }}-${{ matrix.arch }}.tar.gz"
           tar -C release -czf "${ARCHIVE}" "${BIN_NAME}"
+          
           # sha256
           if command -v sha256sum >/dev/null 2>&1; then
             sha256sum "${ARCHIVE}" > "${ARCHIVE}.sha256"
@@ -98,11 +98,10 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.tag }}" ]]; then
             echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event_name }}" == "release" ]]; then
-            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
           else
             echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
           fi
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -112,87 +111,82 @@ jobs:
         run: |
           set -euxo pipefail
           cd artifacts
-          find . -type f -name '*.tar.gz' -print0 | xargs -0 -I{} sha256sum "{}" > SHA256SUMS.txt || true
+          find . -type f -name '*.tar.gz' -print0 | xargs -0 sha256sum > ../SHA256SUMS.txt || true
           find . -type f -name '*.tar.gz' -print0 | xargs -0 ls -l
-          cat SHA256SUMS.txt || true
+          cat ../SHA256SUMS.txt || true
 
       - name: Generate Krew manifest
         id: manifest
         run: |
           set -euo pipefail
           TAG="${{ steps.tag.outputs.tag }}"
+          
           # Resolve checksum values
           checksum() {
             local os=$1 arch=$2
             local file="artifacts/kubestellar-${os}-${arch}/kubectl-kubestellar-${os}-${arch}.tar.gz"
-            if command -v sha256sum >/dev/null 2>&1; then
-              sha256sum "$file" | awk '{print $1}'
-            else
-              shasum -a 256 "$file" | awk '{print $1}'
+            if [[ ! -f "$file" ]]; then
+              echo "ERROR: File not found: $file" >&2
+              exit 1
             fi
+            sha256sum "$file" | awk '{print $1}'
           }
-
+          
           LINUX_AMD64=$(checksum linux amd64)
           DARWIN_AMD64=$(checksum darwin amd64)
           DARWIN_ARM64=$(checksum darwin arm64)
           WINDOWS_AMD64=$(checksum windows amd64)
-
-          cat > kubestellar.yaml <<'YAML'
+          
+          cat > kubestellar.yaml <<YAML
           apiVersion: krew.googlecontainertools.github.com/v1alpha2
           kind: Plugin
           metadata:
             name: kubestellar
           spec:
-            version: REPLACE_VERSION
+            version: ${TAG}
             homepage: https://github.com/kubestellar/a2a
             shortDescription: KubeStellar A2A multi-cluster management agent
             description: |
-              Provides kubectl plugin commands for the KubeStellar Agent (A2A)
-              to execute multi-cluster tasks, discovery, policy analysis, and
-              more via `kubectl kubestellar`.
+              Provides kubectl plugin commands for the KubeStellar Agent (A2A) to execute
+              multi-cluster tasks, discovery, policy analysis, and more via \`kubectl kubestellar\`.
             platforms:
-              - selector:
-                  matchLabels:
-                    os: linux
-                    arch: amd64
-                uri: REPLACE_BASE/kubectl-kubestellar-linux-amd64.tar.gz
-                sha256: REPLACE_SHA_LINUX_AMD64
-                bin: kubectl-kubestellar
-              - selector:
-                  matchLabels:
-                    os: darwin
-                    arch: amd64
-                uri: REPLACE_BASE/kubectl-kubestellar-darwin-amd64.tar.gz
-                sha256: REPLACE_SHA_DARWIN_AMD64
-                bin: kubectl-kubestellar
-              - selector:
-                  matchLabels:
-                    os: darwin
-                    arch: arm64
-                uri: REPLACE_BASE/kubectl-kubestellar-darwin-arm64.tar.gz
-                sha256: REPLACE_SHA_DARWIN_ARM64
-                bin: kubectl-kubestellar
-              - selector:
-                  matchLabels:
-                    os: windows
-                    arch: amd64
-                uri: REPLACE_BASE/kubectl-kubestellar-windows-amd64.tar.gz
-                sha256: REPLACE_SHA_WINDOWS_AMD64
-                bin: kubectl-kubestellar.exe
-YAML
-
-          BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
-          sed -i "s|REPLACE_VERSION|${TAG}|g" kubestellar.yaml
-          sed -i "s|REPLACE_BASE|${BASE_URL}|g" kubestellar.yaml
-          sed -i "s|REPLACE_SHA_LINUX_AMD64|${LINUX_AMD64}|g" kubestellar.yaml
-          sed -i "s|REPLACE_SHA_DARWIN_AMD64|${DARWIN_AMD64}|g" kubestellar.yaml
-          sed -i "s|REPLACE_SHA_DARWIN_ARM64|${DARWIN_ARM64}|g" kubestellar.yaml
-          sed -i "s|REPLACE_SHA_WINDOWS_AMD64|${WINDOWS_AMD64}|g" kubestellar.yaml
-          echo "Generated manifest:" && cat kubestellar.yaml
+            - selector:
+                matchLabels:
+                  os: linux
+                  arch: amd64
+              uri: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/kubectl-kubestellar-linux-amd64.tar.gz
+              sha256: ${LINUX_AMD64}
+              bin: kubectl-kubestellar
+            - selector:
+                matchLabels:
+                  os: darwin
+                  arch: amd64
+              uri: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/kubectl-kubestellar-darwin-amd64.tar.gz
+              sha256: ${DARWIN_AMD64}
+              bin: kubectl-kubestellar
+            - selector:
+                matchLabels:
+                  os: darwin
+                  arch: arm64
+              uri: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/kubectl-kubestellar-darwin-arm64.tar.gz
+              sha256: ${DARWIN_ARM64}
+              bin: kubectl-kubestellar
+            - selector:
+                matchLabels:
+                  os: windows
+                  arch: amd64
+              uri: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/kubectl-kubestellar-windows-amd64.tar.gz
+              sha256: ${WINDOWS_AMD64}
+              bin: kubectl-kubestellar.exe
+          YAML
+          
+          echo "Generated manifest:"
+          cat kubestellar.yaml
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.tag.outputs.tag }}
           files: |
             artifacts/**/*.tar.gz
             artifacts/**/*.sha256
