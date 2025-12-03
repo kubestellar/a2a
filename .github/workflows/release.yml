@@ -48,19 +48,19 @@ jobs:
         run: uv pip install pyinstaller
 
       - name: Build single-file binary
-        run: uv run pyinstaller --onefile --name kubectl-a2a --distpath dist --workpath build packaging/entry_kubectl_a2a.py
+        run: uv run pyinstaller --onefile --name kubectl-kubestellar --distpath dist --workpath build packaging/entry_kubectl_a2a.py
 
       - name: Package artifact (tar.gz)
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p release
-          BIN_NAME="kubectl-a2a"
+          BIN_NAME="kubectl-kubestellar"
           if [[ "${{ matrix.os }}" == "windows" ]]; then
-            BIN_NAME="kubectl-a2a.exe"
+            BIN_NAME="kubectl-kubestellar.exe"
           fi
           cp "dist/${BIN_NAME}" "release/${BIN_NAME}"
-          ARCHIVE="kubectl-a2a-${{ matrix.os }}-${{ matrix.arch }}.tar.gz"
+          ARCHIVE="kubectl-kubestellar-${{ matrix.os }}-${{ matrix.arch }}.tar.gz"
           tar -C release -czf "${ARCHIVE}" "${BIN_NAME}"
           # sha256
           if command -v sha256sum >/dev/null 2>&1; then
@@ -72,7 +72,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: a2a-${{ matrix.os }}-${{ matrix.arch }}
+          name: kubestellar-${{ matrix.os }}-${{ matrix.arch }}
           path: |
             *.tar.gz
             *.sha256
@@ -103,7 +103,7 @@ jobs:
           # Resolve checksum values
           checksum() {
             local os=$1 arch=$2
-            local file="artifacts/a2a-${os}-${arch}/kubectl-a2a-${os}-${arch}.tar.gz"
+            local file="artifacts/kubestellar-${os}-${arch}/kubectl-kubestellar-${os}-${arch}.tar.gz"
             if command -v sha256sum >/dev/null 2>&1; then
               sha256sum "$file" | awk '{print $1}'
             else
@@ -116,11 +116,11 @@ jobs:
           DARWIN_ARM64=$(checksum darwin arm64)
           WINDOWS_AMD64=$(checksum windows amd64)
 
-          cat > kubectl-a2a.yaml <<'YAML'
+          cat > kubestellar.yaml <<'YAML'
 apiVersion: krew.googlecontainertools.github.com/v1alpha2
 kind: Plugin
 metadata:
-  name: a2a
+  name: kubestellar
 spec:
   version: REPLACE_VERSION
   homepage: https://github.com/kubestellar/a2a
@@ -134,40 +134,40 @@ spec:
         matchLabels:
           os: linux
           arch: amd64
-      uri: REPLACE_BASE/kubectl-a2a-linux-amd64.tar.gz
+      uri: REPLACE_BASE/kubectl-kubestellar-linux-amd64.tar.gz
       sha256: REPLACE_SHA_LINUX_AMD64
-      bin: kubectl-a2a
+      bin: kubectl-kubestellar
     - selector:
         matchLabels:
           os: darwin
           arch: amd64
-      uri: REPLACE_BASE/kubectl-a2a-darwin-amd64.tar.gz
+      uri: REPLACE_BASE/kubectl-kubestellar-darwin-amd64.tar.gz
       sha256: REPLACE_SHA_DARWIN_AMD64
-      bin: kubectl-a2a
+      bin: kubectl-kubestellar
     - selector:
         matchLabels:
           os: darwin
           arch: arm64
-      uri: REPLACE_BASE/kubectl-a2a-darwin-arm64.tar.gz
+      uri: REPLACE_BASE/kubectl-kubestellar-darwin-arm64.tar.gz
       sha256: REPLACE_SHA_DARWIN_ARM64
-      bin: kubectl-a2a
+      bin: kubectl-kubestellar
     - selector:
         matchLabels:
           os: windows
           arch: amd64
-      uri: REPLACE_BASE/kubectl-a2a-windows-amd64.tar.gz
+      uri: REPLACE_BASE/kubectl-kubestellar-windows-amd64.tar.gz
       sha256: REPLACE_SHA_WINDOWS_AMD64
-      bin: kubectl-a2a.exe
+      bin: kubectl-kubestellar.exe
 YAML
 
           BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
-          sed -i "s|REPLACE_VERSION|${TAG}|g" kubectl-a2a.yaml
-          sed -i "s|REPLACE_BASE|${BASE_URL}|g" kubectl-a2a.yaml
-          sed -i "s|REPLACE_SHA_LINUX_AMD64|${LINUX_AMD64}|g" kubectl-a2a.yaml
-          sed -i "s|REPLACE_SHA_DARWIN_AMD64|${DARWIN_AMD64}|g" kubectl-a2a.yaml
-          sed -i "s|REPLACE_SHA_DARWIN_ARM64|${DARWIN_ARM64}|g" kubectl-a2a.yaml
-          sed -i "s|REPLACE_SHA_WINDOWS_AMD64|${WINDOWS_AMD64}|g" kubectl-a2a.yaml
-          echo "Generated manifest:" && cat kubectl-a2a.yaml
+          sed -i "s|REPLACE_VERSION|${TAG}|g" kubestellar.yaml
+          sed -i "s|REPLACE_BASE|${BASE_URL}|g" kubestellar.yaml
+          sed -i "s|REPLACE_SHA_LINUX_AMD64|${LINUX_AMD64}|g" kubestellar.yaml
+          sed -i "s|REPLACE_SHA_DARWIN_AMD64|${DARWIN_AMD64}|g" kubestellar.yaml
+          sed -i "s|REPLACE_SHA_DARWIN_ARM64|${DARWIN_ARM64}|g" kubestellar.yaml
+          sed -i "s|REPLACE_SHA_WINDOWS_AMD64|${WINDOWS_AMD64}|g" kubestellar.yaml
+          echo "Generated manifest:" && cat kubestellar.yaml
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -175,8 +175,7 @@ YAML
           files: |
             artifacts/**/*.tar.gz
             artifacts/**/*.sha256
-            kubectl-a2a.yaml
+            kubestellar.yaml
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

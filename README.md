@@ -69,55 +69,54 @@ Notes:
 - The plugin entrypoint is provided by the executable `kubectl-a2a`, which is installed via the Python package entry points. This makes `kubectl a2a` behave the same as running the `kubestellar` CLI directly.
 - With `uv tool install`, executables are placed under `~/.local/bin` by default. Ensure it is on your `PATH`.
 
-### Install via Krew (optional)
+### Install via Krew
 
 Once a release is published, you can use the generated Krew manifest to install:
 
 ```bash
-# 1) Download kubectl-a2a.yaml from the latest release assets
-# 2) Install via krew using the manifest (it references release tarballs)
-kubectl krew install --manifest=kubectl-a2a.yaml
+# Install from the generated manifest attached to a release (name: kubestellar.yaml)
+kubectl krew install --manifest=kubestellar.yaml
 
 # Use the plugin
 kubectl a2a --help
 ```
 
-To make installation available via the central krew-index (`kubectl krew install a2a`), submit a PR to https://github.com/kubernetes-sigs/krew-index with the `kubectl-a2a.yaml` manifest from your release.
+To make installation available via the central krew-index and install like `kubectl krew install kubestellar`, submit a PR to https://github.com/kubernetes-sigs/krew-index with the `kubestellar.yaml` manifest from your release.
 
 ### Direct install (no package manager)
 
 You can install the plugin by placing a binary named `kubectl-a2a` (or `kubectl-a2a.exe` on Windows) on your `PATH`.
 
-Option A — use a release binary:
+Option A — use a release binary (kubectl-kubestellar):
 
 ```bash
 # Download the tarball for your OS/arch from the latest Release
-tar -xzf kubectl-a2a-<os>-<arch>.tar.gz
-chmod +x kubectl-a2a
-mv kubectl-a2a ~/.local/bin/   # or any dir on your PATH
+tar -xzf kubectl-kubestellar-<os>-<arch>.tar.gz
+chmod +x kubectl-kubestellar
+mv kubectl-kubestellar ~/.local/bin/   # or any dir on your PATH
 
 # verify
-which kubectl-a2a
-kubectl plugin list | grep a2a || true
-kubectl a2a --help
+which kubectl-kubestellar
+kubectl plugin list | grep kubestellar || true
+kubectl kubestellar --help
 ```
 
-Option B — build locally and copy to PATH:
+Option B — build locally and copy to PATH (kubectl-kubestellar):
 
 ```bash
 uv sync --dev
 uv pip install pyinstaller
-uv run pyinstaller --onefile --name kubectl-a2a --distpath dist --workpath build packaging/entry_kubectl_a2a.py
-install -m 0755 dist/kubectl-a2a ~/.local/bin/kubectl-a2a
+uv run pyinstaller --onefile --name kubectl-kubestellar --distpath dist --workpath build packaging/entry_kubectl_a2a.py
+install -m 0755 dist/kubectl-kubestellar ~/.local/bin/kubectl-kubestellar
 ```
 
 Option C — reuse the Python entrypoint by symlink:
 
 ```bash
 # If you've installed the package via uv tool/pipx and have `kubestellar` on PATH,
-# create a symlink named kubectl-a2a pointing to it
-ln -sf "$(command -v kubestellar)" ~/.local/bin/kubectl-a2a
-kubectl a2a --help
+# create a symlink named kubectl-kubestellar pointing to it
+ln -sf "$(command -v kubestellar)" ~/.local/bin/kubectl-kubestellar
+kubectl kubestellar --help
 ```
 
 Windows:
@@ -131,7 +130,7 @@ Windows:
 - When you run `kubectl <name> ...`, kubectl executes the first `kubectl-<name>` found on `PATH` and passes through the arguments.
 - List discovered plugins with `kubectl plugin list`.
 - Krew is a plugin manager that installs such binaries under its own path; `kubectl krew install <name>` makes `<name>` available as `kubectl <name>`.
-- This project provides the `kubectl-a2a` executable; once on your PATH, use `kubectl a2a ...`.
+- This project provides `kubectl-kubestellar` (for Krew and binary releases) and `kubectl-a2a` (Python entrypoint). Once on your PATH, use `kubectl kubestellar ...` or `kubectl a2a ...`.
 
 Reference: https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/
 
