@@ -1,9 +1,20 @@
 name: Release
 
 on:
+  # Trigger on semantic version tags like v1.2.3
   push:
     tags:
       - "v*.*.*"
+  # Allow manual runs from the Actions tab
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g., v0.1.0). If empty, uses GITHUB_REF_NAME."
+        required: false
+        default: ""
+  # Also run when a GitHub Release is published from the UI
+  release:
+    types: [published]
 
 permissions:
   contents: write
@@ -82,6 +93,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build]
     steps:
+      - name: Resolve tag for this run
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.tag }}" ]]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -99,7 +120,7 @@ jobs:
         id: manifest
         run: |
           set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
+          TAG="${{ steps.tag.outputs.tag }}"
           # Resolve checksum values
           checksum() {
             local os=$1 arch=$2
