@@ -40,7 +40,7 @@ class BindingPolicyManagement(BaseFunction):
         super().__init__(
             name="binding_policy_management",
             description="Fast operations on KubeStellar BindingPolicy objects "
-                        "(list, create, delete, quick-create) against a single WDS."
+            "(list, create, delete, quick-create) against a single WDS.",
         )
 
     def _convert_to_native(self, obj: Any) -> Any:
@@ -52,47 +52,53 @@ class BindingPolicyManagement(BaseFunction):
             return None
         if isinstance(obj, (str, int, float, bool)):
             return obj
-        
+
         # Explicitly handle protobuf MapComposite/RepeatedComposite by type name
         # This catches objects that might not pass standard ABC checks
         type_str = str(type(obj))
-        if 'MapComposite' in type_str and hasattr(obj, 'items'):
+        if "MapComposite" in type_str and hasattr(obj, "items"):
             return {k: self._convert_to_native(v) for k, v in obj.items()}
-        if 'RepeatedComposite' in type_str and hasattr(obj, '__iter__'):
+        if "RepeatedComposite" in type_str and hasattr(obj, "__iter__"):
             return [self._convert_to_native(i) for i in obj]
 
         # Convert Dict/Mapping
         if isinstance(obj, (dict, MutableMapping)):
             return {k: self._convert_to_native(v) for k, v in obj.items()}
-        
+
         # Convert List/Sequence (exclude str/bytes)
-        if isinstance(obj, (list, tuple, Sequence)) and not isinstance(obj, (str, bytes)):
+        if isinstance(obj, (list, tuple, Sequence)) and not isinstance(
+            obj, (str, bytes)
+        ):
             return [self._convert_to_native(i) for i in obj]
-            
+
         return obj
 
     async def execute(
         self,
-        operation: str = "list",                     # list | create | delete | quick_create
+        operation: str = "list",  # list | create | delete | quick_create
         context: str = "wds1",
         kubeconfig: str = "",
         policy_yaml: str = "",
         policy_json: Dict[str, Any] | None = None,
         policy_name: str = "",
         selector_labels: Dict[str, str] | None = None,
-        resources: List[str] | None = None,          # "apps/deployments", "core/namespaces"
+        resources: List[str] | None = None,  # "apps/deployments", "core/namespaces"
         namespaces: List[str] | None = None,
         specific_workloads: List[Dict[str, str]] | None = None,
         # Advanced features
-        cluster_selectors: List[Dict[str, Any]] | None = None,  # Complex cluster selectors with OR logic
-        object_selectors: List[Dict[str, Any]] | None = None,   # Multiple object selectors with OR logic
-        want_singleton_reported_state: bool = False,            # Status aggregation
-        subject: Dict[str, Any] | None = None,                  # Subject for the BindingPolicy
+        cluster_selectors: (
+            List[Dict[str, Any]] | None
+        ) = None,  # Complex cluster selectors with OR logic
+        object_selectors: (
+            List[Dict[str, Any]] | None
+        ) = None,  # Multiple object selectors with OR logic
+        want_singleton_reported_state: bool = False,  # Status aggregation
+        subject: Dict[str, Any] | None = None,  # Subject for the BindingPolicy
         **_: Any,
     ) -> Dict[str, Any]:
         """
         Execute binding policy operations for KubeStellar workload distribution.
-        
+
         Args:
             operation (str): Operation type to perform.
                 Options: 'list', 'create', 'delete', 'quick_create'
@@ -101,16 +107,16 @@ class BindingPolicyManagement(BaseFunction):
                 - 'create': Apply a raw YAML/JSON manifest
                 - 'delete': Remove a binding policy by name
                 - 'quick_create': Build a policy from parameters
-            
+
             context (str): WDS (Workload Description Space) context name.
                 The Kubernetes context where binding policies are stored.
                 Default: 'wds1'
                 Example: 'wds1', 'wds2'
-            
+
             kubeconfig (str, optional): Path to kubeconfig file.
                 Uses default kubeconfig if not specified.
                 Example: '/path/to/kubeconfig'
-            
+
             policy_yaml (str, optional): Raw YAML manifest for create operation.
                 Complete binding policy definition in YAML format.
                 Used when operation='create'.
@@ -125,41 +131,41 @@ class BindingPolicyManagement(BaseFunction):
                   - matchLabels:
                       location-group: edge
                 ```
-            
+
             policy_json (Dict[str, Any], optional): JSON object for create operation.
                 Alternative to policy_yaml. Same structure in JSON format.
                 Used when operation='create'.
-            
+
             policy_name (str, optional): Name for the binding policy.
                 Required for create and delete operations.
                 Example: 'nginx-bpolicy', 'production-policy'
-            
+
             selector_labels (Dict[str, str], optional): Labels to select clusters.
                 Clusters with these labels will receive the workloads.
                 Used for quick_create operation.
                 Example: {'location-group': 'edge', 'environment': 'production'}
-            
+
             resources (List[str], optional): Resource types to bind.
                 Format: 'apiGroup/resource' (e.g., 'apps/deployments', 'core/namespaces').
                 Use 'core' for core API group.
                 Used for quick_create operation.
                 Example: ['apps/deployments', 'core/services']
-            
+
             namespaces (List[str], optional): Namespaces where policy applies.
                 Restricts policy to specific namespaces.
                 Used for quick_create operation.
                 Example: ['default', 'production']
-            
+
             specific_workloads (List[Dict[str, str]], optional): Specific workloads to bind.
                 Array of objects with apiVersion, kind, name, namespace fields.
                 Used for targeting specific workloads instead of all matching resources.
                 Example: [{
                     'apiVersion': 'apps/v1',
-                    'kind': 'Deployment', 
+                    'kind': 'Deployment',
                     'name': 'nginx',
                     'namespace': 'default'
                 }]
-            
+
             cluster_selectors (List[Dict[str, Any]], optional): Complex cluster selectors with OR logic.
                 Array of cluster selector objects for advanced matching.
                 Supports multiple selectors that will be combined with OR logic.
@@ -168,7 +174,7 @@ class BindingPolicyManagement(BaseFunction):
                     {'matchLabels': {'tier': 'frontend'}},
                     {'matchLabels': {'tier': 'backend'}}
                 ]
-            
+
             object_selectors (List[Dict[str, Any]], optional): Multiple object selectors with OR logic.
                 Array of object selector objects for advanced workload matching.
                 Supports multiple selectors that will be combined with OR logic.
@@ -177,17 +183,17 @@ class BindingPolicyManagement(BaseFunction):
                     {'matchLabels': {'app': 'web-app'}},
                     {'matchLabels': {'app': 'api-service'}}
                 ]
-            
+
             want_singleton_reported_state (bool, optional): Enable status aggregation.
                 When true, enables singleton reported state for the BindingPolicy.
                 Default: false
                 Used for quick_create operation.
-            
+
             subject (Dict[str, Any], optional): Subject for the BindingPolicy.
                 Defines the subject for workload binding.
                 Used for quick_create operation.
                 Example: {'name': 'user1', 'kind': 'User', 'apiGroup': 'rbac.authorization.k8s.io'}
-        
+
         Returns:
             Dict[str, Any]: Operation result containing:
                 - status: 'success' or 'error'
@@ -196,11 +202,11 @@ class BindingPolicyManagement(BaseFunction):
                 - For 'create'/'quick_create': Creation confirmation
                 - For 'delete': Deletion confirmation
                 - error: Error message if status='error'
-        
+
         Examples:
             # List all policies
             >>> binding_policy_management(operation='list')
-            
+
             # Quick create with parameters
             >>> binding_policy_management(
             ...     operation='quick_create',
@@ -209,19 +215,19 @@ class BindingPolicyManagement(BaseFunction):
             ...     resources=['apps/deployments'],
             ...     namespaces=['default']
             ... )
-            
+
             # Create from YAML
             >>> binding_policy_management(
             ...     operation='create',
             ...     policy_yaml=yaml_content
             ... )
-            
+
             # Delete policy
             >>> binding_policy_management(
             ...     operation='delete',
             ...     policy_name='nginx-bpolicy'
             ... )
-            
+
             # Advanced quick create with complex selectors
             >>> binding_policy_management(
             ...     operation='quick_create',
@@ -251,7 +257,9 @@ class BindingPolicyManagement(BaseFunction):
         specific_workloads = self._convert_to_native(specific_workloads)
         cluster_selectors = self._convert_to_native(cluster_selectors)
         object_selectors = self._convert_to_native(object_selectors)
-        want_singleton_reported_state = self._convert_to_native(want_singleton_reported_state)
+        want_singleton_reported_state = self._convert_to_native(
+            want_singleton_reported_state
+        )
         subject = self._convert_to_native(subject)
 
         if isinstance(selector_labels, str):
@@ -270,11 +278,13 @@ class BindingPolicyManagement(BaseFunction):
                 namespaces = json.loads(namespaces)
             except json.JSONDecodeError:
                 namespaces = [s.strip() for s in namespaces.split(",") if s.strip()]
+
         def _as_dict(obj):
             return dict(obj) if not isinstance(obj, dict) else obj
+
         def _as_list(obj):
             return list(obj) if not isinstance(obj, list) else obj
-        
+
         if selector_labels not in (None, "", {}):
             selector_labels = _as_dict(selector_labels)
         if resources not in (None, "", []):
@@ -285,12 +295,16 @@ class BindingPolicyManagement(BaseFunction):
         if operation == "quick_create":
             if not resources or resources in (None, "", []):
                 return {
-                    "status": "error", 
-                    "error": "resources parameter is REQUIRED for quick_create operation. Example: ['apps/deployments', 'core/services']"
+                    "status": "error",
+                    "error": "resources parameter is REQUIRED for quick_create operation. Example: ['apps/deployments', 'core/services']",
                 }
 
-        if operation == "create" and not (policy_yaml or policy_json) \
-           and selector_labels and resources:
+        if (
+            operation == "create"
+            and not (policy_yaml or policy_json)
+            and selector_labels
+            and resources
+        ):
             operation = "quick_create"
 
         if operation == "list":
@@ -298,10 +312,13 @@ class BindingPolicyManagement(BaseFunction):
 
         if operation == "create":
             if not (policy_yaml or policy_json):
-                return {"status": "error", "error": "policy_yaml or policy_json required"}
+                return {
+                    "status": "error",
+                    "error": "policy_yaml or policy_json required",
+                }
             manifest = policy_yaml or yaml.safe_dump(policy_json, sort_keys=False)
             return await self._kubectl_apply(manifest, context, kubeconfig)
-            
+
         if operation == "delete":
             if not policy_name:
                 return {"status": "error", "error": "policy_name required"}
@@ -309,7 +326,7 @@ class BindingPolicyManagement(BaseFunction):
 
         if operation == "quick_create":
             effective_selectors = cluster_selectors or selector_labels or {}
-            
+
             manifest, err = self._build_quick_manifest(
                 policy_name or "",
                 effective_selectors,
@@ -319,7 +336,7 @@ class BindingPolicyManagement(BaseFunction):
                 cluster_selectors=cluster_selectors,
                 object_selectors=object_selectors,
                 want_singleton_reported_state=want_singleton_reported_state,
-                subject=subject
+                subject=subject,
             )
             if err:
                 return {"status": "error", "error": err}
@@ -328,8 +345,15 @@ class BindingPolicyManagement(BaseFunction):
         return {"status": "error", "error": f"unknown operation {operation}"}
 
     async def _op_list(self, ctx: str, kubeconfig: str) -> Dict[str, Any]:
-        cmd = ["kubectl", "--context", ctx, "get",
-               "bindingpolicies.control.kubestellar.io", "-o", "json"]
+        cmd = [
+            "kubectl",
+            "--context",
+            ctx,
+            "get",
+            "bindingpolicies.control.kubestellar.io",
+            "-o",
+            "json",
+        ]
         if kubeconfig:
             cmd += ["--kubeconfig", kubeconfig]
         ret = await self._run(cmd)
@@ -367,9 +391,9 @@ class BindingPolicyManagement(BaseFunction):
             name = f"bp-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
         if object_selectors:
-             object_selectors = self._convert_to_native(object_selectors)
-             if not isinstance(object_selectors, list):
-                 object_selectors = [object_selectors]
+            object_selectors = self._convert_to_native(object_selectors)
+            if not isinstance(object_selectors, list):
+                object_selectors = [object_selectors]
 
         down = []
         for entry in resources:
@@ -379,13 +403,13 @@ class BindingPolicyManagement(BaseFunction):
                 rule["apiGroup"] = grp
             if namespaces:
                 rule["namespaces"] = namespaces
-            
+
             if object_selectors:
                 rule["objectSelectors"] = object_selectors
-            
+
             if want_singleton_reported_state:
                 rule["wantSingletonReportedState"] = True
-                
+
             down.append(rule)
 
         if cluster_selectors:
@@ -396,7 +420,7 @@ class BindingPolicyManagement(BaseFunction):
         else:
             # Convert old selector_labels to new format
             cluster_selectors_list = [{"matchLabels": selector_labels}]
-        
+
         manifest = {
             "apiVersion": "control.kubestellar.io/v1alpha1",
             "kind": "BindingPolicy",
@@ -407,24 +431,23 @@ class BindingPolicyManagement(BaseFunction):
             },
         }
 
-        
         if subject:
             manifest["spec"]["subject"] = subject
-        
+
         def _fix_kubernetes_operators(obj):
             """Fix invalid Kubernetes operators in matchExpressions"""
             if isinstance(obj, dict):
                 fixed = {}
                 for k, v in obj.items():
-                    if k == 'operator' and isinstance(v, str):
-                        if v.lower() in ['equals', 'equal', '=', '==']:
-                            fixed[k] = 'In'
-                        elif v.lower() in ['not_equals', 'notequal', '!=', '<>']:
-                            fixed[k] = 'NotIn'
-                        elif v.lower() in ['exists', 'present']:
-                            fixed[k] = 'Exists'
-                        elif v.lower() in ['not_exists', 'absent', '!exists']:
-                            fixed[k] = 'DoesNotExist'
+                    if k == "operator" and isinstance(v, str):
+                        if v.lower() in ["equals", "equal", "=", "=="]:
+                            fixed[k] = "In"
+                        elif v.lower() in ["not_equals", "notequal", "!=", "<>"]:
+                            fixed[k] = "NotIn"
+                        elif v.lower() in ["exists", "present"]:
+                            fixed[k] = "Exists"
+                        elif v.lower() in ["not_exists", "absent", "!exists"]:
+                            fixed[k] = "DoesNotExist"
                         else:
                             fixed[k] = v
                     else:
@@ -433,52 +456,70 @@ class BindingPolicyManagement(BaseFunction):
             elif isinstance(obj, list):
                 return [_fix_kubernetes_operators(item) for item in obj]
             return obj
-        
+
         manifest = _fix_kubernetes_operators(manifest)
-                
+
         manifest = self._convert_to_native(manifest)
 
         if specific_wl:
             clean_specific_wl = self._convert_to_native(specific_wl)
-            
+
             if clean_specific_wl:
                 wl = clean_specific_wl[0]
-                manifest["metadata"].setdefault("annotations", {})["specificWorkloads"] = ",".join([
-                    wl.get("apiVersion", ""),
-                    wl.get("kind", ""),
-                    wl.get("name", ""),
-                    wl.get("namespace", "")
-                ])
+                manifest["metadata"].setdefault("annotations", {})[
+                    "specificWorkloads"
+                ] = ",".join(
+                    [
+                        wl.get("apiVersion", ""),
+                        wl.get("kind", ""),
+                        wl.get("name", ""),
+                        wl.get("namespace", ""),
+                    ]
+                )
 
         return yaml.safe_dump(manifest, sort_keys=False), None
 
     # ───────────────────────── kubectl helpers ─────────────────────────
-    async def _kubectl_apply(self, yaml_body: str, ctx: str, kubeconfig: str) -> Dict[str, Any]:
+    async def _kubectl_apply(
+        self, yaml_body: str, ctx: str, kubeconfig: str
+    ) -> Dict[str, Any]:
         cmd = ["kubectl", "--context", ctx, "apply", "-f", "-"]
         if kubeconfig:
             cmd += ["--kubeconfig", kubeconfig]
         ret = await self._run(cmd, stdin_data=yaml_body.encode())
         if ret["returncode"] != 0:
-           # include both stdout & stderr in the response so the LLM can show it
-           return {
-               "status": "error",
-               "operation": "apply",
-               "stderr": ret["stderr"],
-               "stdout": ret["stdout"],
-               "cmd": " ".join(cmd[:4]) + " -f -",   # truncated for readability
-           }
+            # include both stdout & stderr in the response so the LLM can show it
+            return {
+                "status": "error",
+                "operation": "apply",
+                "stderr": ret["stderr"],
+                "stdout": ret["stdout"],
+                "cmd": " ".join(cmd[:4]) + " -f -",  # truncated for readability
+            }
         status = "success" if ret["returncode"] == 0 else "error"
-        return {"status": status, "operation": "apply", "output": ret["stdout"] or ret["stderr"]}
+        return {
+            "status": status,
+            "operation": "apply",
+            "output": ret["stdout"] or ret["stderr"],
+        }
 
-    async def _kubectl_delete(self, name: str, ctx: str, kubeconfig: str) -> Dict[str, Any]:
+    async def _kubectl_delete(
+        self, name: str, ctx: str, kubeconfig: str
+    ) -> Dict[str, Any]:
         cmd = ["kubectl", "--context", ctx, "delete", "bindingpolicy", name]
         if kubeconfig:
             cmd += ["--kubeconfig", kubeconfig]
         ret = await self._run(cmd)
         status = "success" if ret["returncode"] == 0 else "error"
-        return {"status": status, "operation": "delete", "output": ret["stdout"] or ret["stderr"]}
+        return {
+            "status": status,
+            "operation": "delete",
+            "output": ret["stdout"] or ret["stderr"],
+        }
 
-    async def _run(self, cmd: List[str], stdin_data: bytes | None = None) -> Dict[str, str]:
+    async def _run(
+        self, cmd: List[str], stdin_data: bytes | None = None
+    ) -> Dict[str, str]:
         """Run command with cancellation support."""
         return await run_subprocess_with_cancellation(cmd, stdin_data)
 
@@ -486,9 +527,12 @@ class BindingPolicyManagement(BaseFunction):
     def _make_result(self, item: Dict[str, Any]) -> BPResult:
         meta = item["metadata"]
         spec = item.get("spec", {})
-        status = "active" if meta.get("generation") == item.get("status", {}).get(
-            "observedGeneration"
-        ) else "inactive"
+        status = (
+            "active"
+            if meta.get("generation")
+            == item.get("status", {}).get("observedGeneration")
+            else "inactive"
+        )
 
         clusters: List[str] = []
         for sel in spec.get("clusterSelectors", []):
@@ -528,35 +572,45 @@ class BindingPolicyManagement(BaseFunction):
                     "enum": ["list", "create", "delete", "quick_create"],
                     "default": "list",
                 },
-                "context": {"type": "string", "default": "wds1", "description": "WDS context name"},
+                "context": {
+                    "type": "string",
+                    "default": "wds1",
+                    "description": "WDS context name",
+                },
                 "kubeconfig": {"type": "string"},
                 "policy_yaml": {"type": "string"},
                 "policy_json": {"type": "object"},
                 "policy_name": {"type": "string"},
-                "selector_labels": {"type": "object", "description": "OLD parameter - use cluster_selectors instead"},
+                "selector_labels": {
+                    "type": "object",
+                    "description": "OLD parameter - use cluster_selectors instead",
+                },
                 "cluster_selectors": {
-                    "type": "array", 
+                    "type": "array",
                     "items": {"type": "object"},
-                    "description": "Advanced cluster selectors with matchLabels and matchExpressions"
+                    "description": "Advanced cluster selectors with matchLabels and matchExpressions",
                 },
                 "resources": {
-                    "type": "array", 
+                    "type": "array",
                     "items": {"type": "string"},
-                    "description": "Resource types to bind. REQUIRED for quick_create. Example: ['apps/deployments', 'core/services']"
+                    "description": "Resource types to bind. REQUIRED for quick_create. Example: ['apps/deployments', 'core/services']",
                 },
                 "namespaces": {"type": "array", "items": {"type": "string"}},
                 "specific_workloads": {"type": "array", "items": {"type": "object"}},
                 "object_selectors": {
                     "type": "array",
                     "items": {"type": "object"},
-                    "description": "Multiple object selectors with OR logic"
+                    "description": "Multiple object selectors with OR logic",
                 },
                 "want_singleton_reported_state": {
                     "type": "boolean",
                     "description": "Status aggregation",
-                    "default": False
+                    "default": False,
                 },
-                "subject": {"type": "object", "description": "Subject for the BindingPolicy"},
+                "subject": {
+                    "type": "object",
+                    "description": "Subject for the BindingPolicy",
+                },
             },
             "required": [],
             "allOf": [
@@ -566,13 +620,12 @@ class BindingPolicyManagement(BaseFunction):
                         "required": ["resources"],
                         "properties": {
                             "resources": {
-                                "type": "array", 
+                                "type": "array",
                                 "items": {"type": "string"},
-                                "description": "Resource types to bind. REQUIRED for quick_create. Example: ['apps/deployments', 'core/services']"
+                                "description": "Resource types to bind. REQUIRED for quick_create. Example: ['apps/deployments', 'core/services']",
                             }
-                        }
-                    }
+                        },
+                    },
                 }
-            ]
+            ],
         }
-        

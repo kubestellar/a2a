@@ -27,7 +27,7 @@ from src.llm_providers.config import get_config_manager
 from src.shared.base_functions import function_registry
 from src.shared.functions import initialize_functions
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def _json_serializer(obj: Any) -> Any:
@@ -37,39 +37,39 @@ def _json_serializer(obj: Any) -> Any:
 
     # explicit type check for protobuf objects
     type_str = str(type(obj))
-    if 'MapComposite' in type_str and hasattr(obj, 'items'):
+    if "MapComposite" in type_str and hasattr(obj, "items"):
         try:
             return dict(obj.items())
         except Exception:
             pass
-    if 'RepeatedComposite' in type_str and hasattr(obj, '__iter__'):
+    if "RepeatedComposite" in type_str and hasattr(obj, "__iter__"):
         try:
             return list(obj)
         except Exception:
             pass
 
-    if hasattr(obj, '__class__'):
+    if hasattr(obj, "__class__"):
         class_name = str(obj.__class__)
         # Check for protobuf MapComposite or similar mapping objects
-        if 'MapComposite' in class_name or 'Mapping' in class_name:
+        if "MapComposite" in class_name or "Mapping" in class_name:
             try:
                 # First try direct conversion to dict
-                if hasattr(obj, 'items'):
+                if hasattr(obj, "items"):
                     return dict(obj.items())
                 # For protobuf repeated fields or other iterables
                 return {k: v for k, v in obj.items()}
             except Exception:
                 pass  # Fall through to string representation
-        
+
         # Handle other objects that might be mappable
         if not isinstance(obj, (str, int, float, bool, type(None))):
             try:
                 # Try to convert to dict if it has items() method
-                if hasattr(obj, 'items') and callable(getattr(obj, 'items')):
+                if hasattr(obj, "items") and callable(getattr(obj, "items")):
                     return dict(obj.items())
             except (TypeError, AttributeError, ValueError):
                 pass
-    
+
     # Default: convert to string
     return str(obj)
 
@@ -83,15 +83,16 @@ class AgentChat:
         self.config_manager = get_config_manager()
         self.messages: List[LLMMessage] = []
         self.provider: Optional[BaseLLMProvider] = None
-        
+
         # Track running tasks for cancellation
         self._running_tasks: set[asyncio.Task] = set()
         self._current_task: Optional[asyncio.Task] = None
-        
+
         # Ensure stdin is non-blocking for prompt-toolkit and our escape logic
         if sys.stdin and sys.stdin.isatty():
             import termios
             import tty
+
             self._old_tty_settings = termios.tcgetattr(sys.stdin)
             tty.setcbreak(sys.stdin.fileno())
 
@@ -126,17 +127,17 @@ class AgentChat:
         other coroutines are running.
         """
         if not sys.stdin.isatty():
-            await asyncio.Future() # block indefinitely if not a TTY
+            await asyncio.Future()  # block indefinitely if not a TTY
             return
 
         loop = asyncio.get_running_loop()
         fut: asyncio.Future[None] = loop.create_future()
 
-        def _on_key_press() -> None:          # called by add_reader
+        def _on_key_press() -> None:  # called by add_reader
             # Non-blocking read
             try:
-                ch = sys.stdin.read(1)            # read one raw byte
-                if ch == "\x1b":                  # ESC
+                ch = sys.stdin.read(1)  # read one raw byte
+                if ch == "\x1b":  # ESC
                     if not fut.done():
                         fut.set_result(None)
             except OSError:
@@ -145,7 +146,7 @@ class AgentChat:
 
         loop.add_reader(sys.stdin.fileno(), _on_key_press)
         try:
-            await fut                         # wait until ESC pressed
+            await fut  # wait until ESC pressed
         finally:
             loop.remove_reader(sys.stdin.fileno())
 
@@ -155,7 +156,7 @@ class AgentChat:
             if not task.done():
                 task.cancel()
         self._running_tasks.clear()
-        
+
         if self._current_task and not self._current_task.done():
             self._current_task.cancel()
             self._current_task = None
@@ -169,23 +170,24 @@ class AgentChat:
         task = asyncio.create_task(coro)
         self._current_task = task
         self._running_tasks.add(task)
-        
+
         try:
-            esc  = asyncio.create_task(self._wait_for_escape())
+            esc = asyncio.create_task(self._wait_for_escape())
             self._running_tasks.add(esc)
 
-            done, _ = await asyncio.wait({task, esc},
-                                         return_when=asyncio.FIRST_COMPLETED)
+            done, _ = await asyncio.wait(
+                {task, esc}, return_when=asyncio.FIRST_COMPLETED
+            )
 
-            if esc in done:                       # user hit ESC
+            if esc in done:  # user hit ESC
                 task.cancel()
                 self.console.print("[yellow]⏹  Operation cancelled (ESC)[/yellow]")
                 try:
-                    await task                    # swallow CancelledError
+                    await task  # swallow CancelledError
                 except asyncio.CancelledError:
                     pass
                 return None
-            else:                                 # task finished normally
+            else:  # task finished normally
                 esc.cancel()
                 return await task
         finally:
@@ -239,11 +241,13 @@ class AgentChat:
             ]
         )
 
-    async def _execute_function(self, function_name: str, args: Dict[str, Any]) -> tuple[str, float]:
+    async def _execute_function(
+        self, function_name: str, args: Dict[str, Any]
+    ) -> tuple[str, float]:
         """Execute a KubeStellar function."""
         function = function_registry.get(function_name)
         if not function:
-            return f"Error: Unknown function '{function_name}'",0.0
+            return f"Error: Unknown function '{function_name}'", 0.0
 
         try:
             start = time.perf_counter()
@@ -252,7 +256,6 @@ class AgentChat:
             return json.dumps(result_dict, indent=2, default=_json_serializer), elapsed
         except Exception as e:
             return f"Error executing {function_name}: {str(e)}", 0.0
-
 
     def _prepare_tools(self) -> List[Dict[str, Any]]:
         """Prepare available tools for the LLM."""
@@ -267,7 +270,7 @@ class AgentChat:
                 clean_schema = json.loads(json.dumps(schema, default=_json_serializer))
             except (TypeError, ValueError):
                 clean_schema = schema
-            
+
             tools.append(
                 {
                     "name": function.name,
@@ -355,8 +358,8 @@ class AgentChat:
                 response = await self._run_with_cancel(
                     self.provider.generate(
                         messages=conversation,
-                        tools=tools, 
-                        stream=False,  
+                        tools=tools,
+                        stream=False,
                     )
                 )
             if response is None:
@@ -369,12 +372,12 @@ class AgentChat:
             if response.tool_calls:
                 if response.tool_calls[0].name == "create_plan":
                     self.plan = response.tool_calls[0].arguments["steps"]
-                    
+
                     # Validate plan before presenting to user
                     if not self._validate_plan():
                         # Don't present invalid plan, let LLM regenerate
                         return
-                    
+
                     self._present_plan()
                     return
 
@@ -385,12 +388,14 @@ class AgentChat:
                         with self.console.status(
                             f"[dim]⚙️  Executing: {tool_call.name}[/dim]", spinner="dots"
                         ):
-                            result,elapsed = await self._run_with_cancel(
-                                self._execute_function(tool_call.name, tool_call.arguments)
+                            result, elapsed = await self._run_with_cancel(
+                                self._execute_function(
+                                    tool_call.name, tool_call.arguments
+                                )
                             )
-                        if result is None:        
+                        if result is None:
                             return
-                        
+
                         tool_results.append(
                             {"call_id": tool_call.id, "content": result}
                         )
@@ -485,7 +490,8 @@ class AgentChat:
                 func_desc += "\n" + "\n".join(params)
             functions_desc.append(func_desc)
 
-        return """⚠️⚠️⚠️ URGENT: JSON STRINGS MUST BE QUOTED ⚠️⚠️⚠️
+        return (
+            """⚠️⚠️⚠️ URGENT: JSON STRINGS MUST BE QUOTED ⚠️⚠️⚠️
 ALWAYS use: {"key": "value"} NEVER: {"key": value}
 Examples: {"app": "my-app"}, {"workload-type": "batch"}
 
@@ -954,7 +960,9 @@ binding_policy_management(
 **Key Concept:** Binding policies connect workloads with specific labels to clusters with matching selector labels. Use `quick_create` for simple policies, or `create` with `policy_yaml` for complex ones.
 
 ## Available Functions:
-""" + chr(10).join(functions_desc) + """
+"""
+            + chr(10).join(functions_desc)
+            + """
 
 ## Tool Usage Strategy:
 - **For simple tasks** that can be solved with a single function call, call the function directly. Do NOT create a plan.
@@ -985,32 +993,36 @@ For pod counts, respond like this:
 - Never guess or make up numbers
 - Present information clearly and concisely
 - When deploying resources, always explain the purpose of labels being applied"""
+        )
 
     def _format_value(self, value: Any) -> str:
         """Format a value for display in the execution plan."""
         # Handle None
         if value is None:
             return "null"
-        
+
         # Handle empty values
         if value == "":
             return '""'
-        
+
         # Handle string representations of lists (common issue)
         if isinstance(value, str):
             # Check if it looks like a list representation
-            if value.startswith('[') and value.endswith(']'):
+            if value.startswith("[") and value.endswith("]"):
                 try:
                     # Try to parse as Python list
                     import ast
+
                     parsed_list = ast.literal_eval(value)
                     if isinstance(parsed_list, list):
-                        formatted_items = [self._format_value(item) for item in parsed_list]
+                        formatted_items = [
+                            self._format_value(item) for item in parsed_list
+                        ]
                         result = "[" + ", ".join(formatted_items) + "]"
                         return result
                 except (ValueError, SyntaxError):
                     pass  # Fall through to string handling
-        
+
         # Handle dictionaries first (most common case)
         if isinstance(value, dict):
             formatted_items = []
@@ -1020,19 +1032,23 @@ For pod counts, respond like this:
                 formatted_v = self._format_value(v)
                 formatted_items.append(f'"{k}": {formatted_v}')
             return "{" + ", ".join(formatted_items) + "}"
-        
+
         # Handle lists
         if isinstance(value, list):
             formatted_items = [self._format_value(item) for item in value]
             result = "[" + ", ".join(formatted_items) + "]"
             return result
-        
+
         # CRITICAL FIX: Check for MapComposite/Mapping BEFORE generic iterables
         # MapComposite has __iter__ so it gets caught by the list check if we don't check it first
         type_str = str(type(value))
-        if 'MapComposite' in type_str or 'Mapping' in type_str or (hasattr(value, 'items') and callable(getattr(value, 'items'))):
+        if (
+            "MapComposite" in type_str
+            or "Mapping" in type_str
+            or (hasattr(value, "items") and callable(getattr(value, "items")))
+        ):
             try:
-                if hasattr(value, 'items'):
+                if hasattr(value, "items"):
                     items = dict(value.items())
                     formatted_items = []
                     for k, v in items.items():
@@ -1044,19 +1060,21 @@ For pod counts, respond like this:
                 pass
 
         # Handle protobuf RepeatedComposite (and other non-string iterables)
-        if 'RepeatedComposite' in type_str or (hasattr(value, '__iter__') and not isinstance(value, (str, bytes, dict))):
+        if "RepeatedComposite" in type_str or (
+            hasattr(value, "__iter__") and not isinstance(value, (str, bytes, dict))
+        ):
             try:
                 formatted_items = [self._format_value(item) for item in value]
                 result = "[" + ", ".join(formatted_items) + "]"
                 return result
             except Exception:
                 pass
-        
+
         # Handle other objects that might be mappable (legacy check, keep just in case)
         if not isinstance(value, (str, int, float, bool, type(None))):
             try:
                 # Try to convert to dict if it has items() method
-                if hasattr(value, 'items') and callable(getattr(value, 'items')):
+                if hasattr(value, "items") and callable(getattr(value, "items")):
                     items = dict(value.items())
                     formatted_items = []
                     for k, v in items.items():
@@ -1065,7 +1083,7 @@ For pod counts, respond like this:
                     return "{" + ", ".join(formatted_items) + "}"
             except (TypeError, AttributeError, ValueError):
                 pass
-        
+
         # Default: convert to string
         return str(value)
 
@@ -1073,59 +1091,65 @@ For pod counts, respond like this:
         """Validate the execution plan for common issues before presenting to user."""
         if not self.plan:
             return True
-        
+
         validation_errors = []
-        
+
         for i, step in enumerate(self.plan):
-            function_name = step.get('function_name', '')
-            arguments = step.get('arguments', {})
-            
+            function_name = step.get("function_name", "")
+            arguments = step.get("arguments", {})
+
             # Validate binding_policy_management quick_create requires resources
-            if function_name == 'binding_policy_management':
-                operation = arguments.get('operation', '')
-                
-                if operation == 'quick_create':
-                    resources = arguments.get('resources')
-                    
-                    if not resources or resources in ([], '', None):
+            if function_name == "binding_policy_management":
+                operation = arguments.get("operation", "")
+
+                if operation == "quick_create":
+                    resources = arguments.get("resources")
+
+                    if not resources or resources in ([], "", None):
                         validation_errors.append(
                             f"Step {i+1} ({function_name}): 'resources' parameter is REQUIRED for quick_create operation. "
                             f"Example: ['apps/deployments', 'core/services']"
                         )
-                    
+
                     # Validate and fix clusterSelectors format
-                    cluster_selectors = arguments.get('cluster_selectors')
-                    
+                    cluster_selectors = arguments.get("cluster_selectors")
+
                     if cluster_selectors:
                         # Check if clusterSelectors has wrong format (missing matchLabels)
                         fixed_selectors = []
                         needs_fix = False
                         for selector in cluster_selectors:
                             # Handle MapComposite objects
-                            if 'MapComposite' in str(type(selector)):
+                            if "MapComposite" in str(type(selector)):
                                 try:
                                     # Convert MapComposite to dict recursively
                                     def convert_mapcomposite(obj):
-                                        if 'MapComposite' in str(type(obj)):
-                                            if hasattr(obj, 'items'):
+                                        if "MapComposite" in str(type(obj)):
+                                            if hasattr(obj, "items"):
                                                 result = {}
                                                 for k, v in obj.items():
                                                     result[k] = convert_mapcomposite(v)
                                                 return result
                                             else:
                                                 return str(obj)
-                                        elif 'RepeatedComposite' in str(type(obj)):
-                                            if hasattr(obj, '__iter__'):
-                                                return [convert_mapcomposite(item) for item in obj]
+                                        elif "RepeatedComposite" in str(type(obj)):
+                                            if hasattr(obj, "__iter__"):
+                                                return [
+                                                    convert_mapcomposite(item)
+                                                    for item in obj
+                                                ]
                                             else:
                                                 return str(obj)
                                         else:
                                             return obj
-                                    
+
                                     selector_dict = convert_mapcomposite(selector)
-                                    
+
                                     # Check if it already has proper structure (matchLabels or matchExpressions)
-                                    if 'matchLabels' in selector_dict or 'matchExpressions' in selector_dict:
+                                    if (
+                                        "matchLabels" in selector_dict
+                                        or "matchExpressions" in selector_dict
+                                    ):
                                         # Use the converted dict as-is since it's already in correct format
                                         fixed_selectors.append(selector_dict)
                                         # Still need to update the plan to replace MapComposite with dict
@@ -1141,15 +1165,21 @@ For pod counts, respond like this:
                             elif isinstance(selector, str):
                                 try:
                                     import json
+
                                     selector_dict = json.loads(selector)
                                     if isinstance(selector_dict, dict):
                                         # Check if selector already has proper structure (matchLabels or matchExpressions)
-                                        if 'matchLabels' in selector_dict or 'matchExpressions' in selector_dict:
+                                        if (
+                                            "matchLabels" in selector_dict
+                                            or "matchExpressions" in selector_dict
+                                        ):
                                             # Already in correct format, use as-is
                                             fixed_selectors.append(selector_dict)
                                         else:
                                             # Wrong format - wrap with matchLabels
-                                            fixed_selector = {"matchLabels": selector_dict}
+                                            fixed_selector = {
+                                                "matchLabels": selector_dict
+                                            }
                                             fixed_selectors.append(fixed_selector)
                                             needs_fix = True
                                     else:
@@ -1159,7 +1189,10 @@ For pod counts, respond like this:
                                     fixed_selectors.append(selector)
                             elif isinstance(selector, dict):
                                 # Check if selector already has proper structure (matchLabels or matchExpressions)
-                                if 'matchLabels' in selector or 'matchExpressions' in selector:
+                                if (
+                                    "matchLabels" in selector
+                                    or "matchExpressions" in selector
+                                ):
                                     # Already in correct format, use as-is
                                     fixed_selectors.append(selector)
                                 else:
@@ -1169,32 +1202,38 @@ For pod counts, respond like this:
                                     needs_fix = True
                             else:
                                 fixed_selectors.append(selector)
-                        
+
                         if needs_fix:
                             # Auto-fix the plan
-                            self.plan[i]['arguments']['cluster_selectors'] = fixed_selectors
-                            self.console.print(f"[dim]🔧 Auto-fixed clusterSelectors format in step {i+1}[/dim]")
-            
+                            self.plan[i]["arguments"][
+                                "cluster_selectors"
+                            ] = fixed_selectors
+                            self.console.print(
+                                f"[dim]🔧 Auto-fixed clusterSelectors format in step {i+1}[/dim]"
+                            )
+
             # Validate deploy_to has targeting information
-            elif function_name == 'deploy_to':
-                target_clusters = arguments.get('target_clusters')
-                cluster_labels = arguments.get('cluster_labels')
-                context = arguments.get('context')
-                
+            elif function_name == "deploy_to":
+                target_clusters = arguments.get("target_clusters")
+                cluster_labels = arguments.get("cluster_labels")
+                context = arguments.get("context")
+
                 if not target_clusters and not cluster_labels and not context:
                     validation_errors.append(
                         f"Step {i+1} ({function_name}): Must specify either target_clusters, cluster_labels, or context. "
                         f"For KubeStellar workflows, use target_clusters=['its1']"
                     )
-        
+
         # Report validation errors
         if validation_errors:
             self.console.print("\n[bold red]⚠️  Plan Validation Errors:[/bold red]")
             for error in validation_errors:
                 self.console.print(f"  ❌ {error}")
-            self.console.print("\n[yellow]Please regenerate the plan with the required parameters.[/yellow]")
+            self.console.print(
+                "\n[yellow]Please regenerate the plan with the required parameters.[/yellow]"
+            )
             return False
-        
+
         return True
 
     def _present_plan(self):
@@ -1318,27 +1357,52 @@ For pod counts, respond like this:
 
     async def run(self):
         """Run the interactive chat loop."""
+
         # Set up signal handler for Ctrl+C
         def signal_handler(sig, frame):
-            self.console.print("\n[yellow]⏹  Cancelling all operations... (Ctrl+C)[/yellow]")
+            self.console.print(
+                "\n[yellow]⏹  Cancelling all operations... (Ctrl+C)[/yellow]"
+            )
             self._cancel_all_tasks()
-            
+
         # Store original signal handler
         original_sigint_handler = signal.signal(signal.SIGINT, signal_handler)
 
         # ASCII art for KubeStellar with proper formatting
         self.console.print()
-        self.console.print("[cyan]╭─────────────────────────────────────────────────────────────────────────────────────────────╮[/cyan]")
-        self.console.print("[cyan]│[/cyan]                                                                                             [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]██╗  ██╗██╗   ██╗██████╗ ███████╗███████╗████████╗███████╗██╗     ██╗      █████╗ ██████╗[/bold cyan]  [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]██║ ██╔╝██║   ██║██╔══██╗██╔════╝██╔════╝╚══██╔══╝██╔════╝██║     ██║     ██╔══██╗██╔══██╗[/bold cyan] [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]█████╔╝ ██║   ██║██████╔╝█████╗  ███████╗   ██║   █████╗  ██║     ██║     ███████║██████╔╝[/bold cyan] [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]██╔═██╗ ██║   ██║██╔══██╗██╔══╝  ╚════██║   ██║   ██╔══╝  ██║     ██║     ██╔══██║██╔══██╗[/bold cyan] [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]██║  ██╗╚██████╔╝██████╔╝███████╗███████║   ██║   ███████╗███████╗███████╗██║  ██║██║  ██║[/bold cyan] [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]  [bold cyan]╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝[/bold cyan] [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]                                                                                             [cyan]│[/cyan]")
-        self.console.print("[cyan]│[/cyan]                       [dim]🌟 Multi-Cluster Kubernetes Management Agent 🌟[/dim]                       [cyan]│[/cyan]")
-        self.console.print("[cyan]╰─────────────────────────────────────────────────────────────────────────────────────────────╯[/cyan]")
+        self.console.print(
+            "[cyan]╭─────────────────────────────────────────────────────────────────────────────────────────────╮[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]                                                                                             [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]██╗  ██╗██╗   ██╗██████╗ ███████╗███████╗████████╗███████╗██╗     ██╗      █████╗ ██████╗[/bold cyan]  [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]██║ ██╔╝██║   ██║██╔══██╗██╔════╝██╔════╝╚══██╔══╝██╔════╝██║     ██║     ██╔══██╗██╔══██╗[/bold cyan] [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]█████╔╝ ██║   ██║██████╔╝█████╗  ███████╗   ██║   █████╗  ██║     ██║     ███████║██████╔╝[/bold cyan] [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]██╔═██╗ ██║   ██║██╔══██╗██╔══╝  ╚════██║   ██║   ██╔══╝  ██║     ██║     ██╔══██║██╔══██╗[/bold cyan] [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]██║  ██╗╚██████╔╝██████╔╝███████╗███████║   ██║   ███████╗███████╗███████╗██║  ██║██║  ██║[/bold cyan] [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]  [bold cyan]╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝[/bold cyan] [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]                                                                                             [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]│[/cyan]                       [dim]🌟 Multi-Cluster Kubernetes Management Agent 🌟[/dim]                       [cyan]│[/cyan]"
+        )
+        self.console.print(
+            "[cyan]╰─────────────────────────────────────────────────────────────────────────────────────────────╯[/cyan]"
+        )
         self.console.print()
 
         # Welcome message
@@ -1399,13 +1463,16 @@ For pod counts, respond like this:
         finally:
             # Restore original signal handler
             signal.signal(signal.SIGINT, original_sigint_handler)
-            
+
             # Cancel any remaining tasks
             self._cancel_all_tasks()
 
         if sys.stdin and sys.stdin.isatty():
             import termios
-            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, self._old_tty_settings)
+
+            termios.tcsetattr(
+                sys.stdin.fileno(), termios.TCSADRAIN, self._old_tty_settings
+            )
         # Goodbye
         self.console.print("\n[dim]Goodbye![/dim]")
 
@@ -1438,14 +1505,14 @@ For pod counts, respond like this:
     async def _summarize_result(self, function_name: str, result: str) -> str:
         """Summarize the result of a tool execution using the LLM."""
         try:
-            prompt = f'''Please summarize the following JSON output from the `{function_name}` tool.
+            prompt = f"""Please summarize the following JSON output from the `{function_name}` tool.
 Focus on the most important information for the user, such as success or failure, names of created resources, or key data points.
 Keep the summary concise and easy to read.
 
 Tool Output:
 ```json
 {result}
-```'''
+```"""
             messages = [LLMMessage(role=MessageRole.USER, content=prompt)]
 
             # We don't want the summarizer to call tools, so pass an empty list.

@@ -50,7 +50,7 @@ def initialize_functions():
 
     # Register Helm deployment function
     function_registry.register(HelmDeployFunction())
-    
+
     # Register GVRC and namespace utilities
     function_registry.register(GVRCDiscoveryFunction())
     function_registry.register(NamespaceUtilsFunction())

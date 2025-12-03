@@ -53,7 +53,10 @@ class TestKubeStellarManagementFunction:
             result = await kubestellar_function.execute()
 
             assert result["status"] == "error"
-            assert "no kubestellar clusters discovered" in result["details"]["error"].lower()
+            assert (
+                "no kubestellar clusters discovered"
+                in result["details"]["error"].lower()
+            )
 
     @pytest.mark.asyncio
     async def test_topology_map_operation(self, kubestellar_function):
@@ -87,7 +90,7 @@ class TestKubeStellarManagementFunction:
             mock_discover.return_value = mock_clusters
 
             result = await kubestellar_function.execute(operation="topology_map")
-            
+
             assert result["status"] == "success"
             details = result["details"]
             assert details["operation"] == "topology_map"
@@ -541,8 +544,8 @@ class TestKubeStellarManagementFunction:
         # The new implementation uses run_shell_command_with_cancellation
         # which doesn't catch general exceptions, so we expect the exception to propagate
         with patch(
-            "src.shared.utils.run_subprocess_with_cancellation", 
-            side_effect=Exception("Command failed")
+            "src.shared.utils.run_subprocess_with_cancellation",
+            side_effect=Exception("Command failed"),
         ):
             with pytest.raises(Exception, match="Command failed"):
                 await kubestellar_function._run_command(["nonexistent"])

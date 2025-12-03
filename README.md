@@ -34,6 +34,184 @@ uv run kubestellar execute <function_name>
 uv run kubestellar agent  # Start interactive AI agent
 ```
 
+## kubectl Plugin Installation
+
+You can install and use this project as a kubectl plugin. The plugin name is `a2a`, which kubectl discovers via an executable named `kubectl-a2a` on your `PATH`.
+
+Installation options:
+
+```bash
+# Using uv tool (recommended for per-user install)
+uv tool install .
+
+# Using pipx (isolated virtualenv)
+pipx install .
+
+# Or directly from GitHub
+pipx install 'git+https://github.com/kubestellar/a2a'
+
+# Using pip (installs into current Python environment)
+python -m pip install .
+```
+
+Usage:
+
+```bash
+# kubectl will find the plugin as long as kubectl-a2a is on PATH
+kubectl a2a --help
+kubectl a2a list-functions
+kubectl a2a execute <function_name> -P key=value
+  kubectl a2a agent
+```
+
+Notes:
+
+- The plugin entrypoint is provided by the executable `kubectl-a2a`, which is installed via the Python package entry points. This makes `kubectl a2a` behave the same as running the `kubestellar` CLI directly.
+- With `uv tool install`, executables are placed under `~/.local/bin` by default. Ensure it is on your `PATH`.
+
+### Install via Krew (optional)
+
+Once a release is published, you can use the generated Krew manifest to install:
+
+```bash
+# 1) Download kubectl-a2a.yaml from the latest release assets
+# 2) Install via krew using the manifest (it references release tarballs)
+kubectl krew install --manifest=kubectl-a2a.yaml
+
+# Use the plugin
+kubectl a2a --help
+```
+
+To make installation available via the central krew-index (`kubectl krew install a2a`), submit a PR to https://github.com/kubernetes-sigs/krew-index with the `kubectl-a2a.yaml` manifest from your release.
+
+### Direct install (no package manager)
+
+You can install the plugin by placing a binary named `kubectl-a2a` (or `kubectl-a2a.exe` on Windows) on your `PATH`.
+
+Option A — use a release binary:
+
+```bash
+# Download the tarball for your OS/arch from the latest Release
+tar -xzf kubectl-a2a-<os>-<arch>.tar.gz
+chmod +x kubectl-a2a
+mv kubectl-a2a ~/.local/bin/   # or any dir on your PATH
+
+# verify
+which kubectl-a2a
+kubectl plugin list | grep a2a || true
+kubectl a2a --help
+```
+
+Option B — build locally and copy to PATH:
+
+```bash
+uv sync --dev
+uv pip install pyinstaller
+uv run pyinstaller --onefile --name kubectl-a2a --distpath dist --workpath build packaging/entry_kubectl_a2a.py
+install -m 0755 dist/kubectl-a2a ~/.local/bin/kubectl-a2a
+```
+
+Option C — reuse the Python entrypoint by symlink:
+
+```bash
+# If you've installed the package via uv tool/pipx and have `kubestellar` on PATH,
+# create a symlink named kubectl-a2a pointing to it
+ln -sf "$(command -v kubestellar)" ~/.local/bin/kubectl-a2a
+kubectl a2a --help
+```
+
+Windows:
+
+- Use the `.exe` from the Windows release archive and place it in a directory on your `%PATH%`.
+- Or create `kubectl-a2a.bat` forwarding to `kubestellar.exe` if using a symlink alternative isn’t convenient.
+
+### How kubectl plugin discovery works (Kubectl Plugins)
+
+- kubectl discovers plugins by searching your `PATH` for executables named `kubectl-<name>` (per the official docs).
+- When you run `kubectl <name> ...`, kubectl executes the first `kubectl-<name>` found on `PATH` and passes through the arguments.
+- List discovered plugins with `kubectl plugin list`.
+- Krew is a plugin manager that installs such binaries under its own path; `kubectl krew install <name>` makes `<name>` available as `kubectl <name>`.
+- This project provides the `kubectl-a2a` executable; once on your PATH, use `kubectl a2a ...`.
+
+Reference: https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/
+
+### Get the latest version
+
+For users who installed via uv tool from GitHub:
+
+```bash
+# Install latest from main
+uv tool install --upgrade 'git+https://github.com/kubestellar/a2a@main'
+
+# Or upgrade an existing install (uses original source spec)
+uv tool upgrade kubestellar
+```
+
+For pipx installs:
+
+```bash
+pipx upgrade kubestellar
+# or reinstall from GitHub
+pipx install --force 'git+https://github.com/kubestellar/a2a@main'
+```
+
+## Releasing
+
+This repo includes an automated release workflow that builds platform-specific plugin binaries and publishes a Krew manifest.
+
+Steps:
+
+- Tag a version and push the tag, e.g.: `git tag v0.1.0 && git push origin v0.1.0`
+- GitHub Actions workflow `.github/workflows/release.yml` runs and produces:
+  - Tarballs for `kubectl-a2a` on Linux amd64, macOS amd64/arm64, Windows amd64
+  - SHA256 checksums
+  - `kubectl-a2a.yaml` Krew manifest with versioned asset URLs and checksums
+  - A GitHub Release containing the above assets
+
+Users can then install via Krew using the attached manifest, or you can submit it to the central krew-index.
+
+## Local Plugin Testing
+
+You can test `kubectl a2a` locally in two ways.
+
+- Using uv tool (recommended):
+
+```bash
+# From the repo root
+uv tool uninstall kubectl-a2a || true
+uv tool uninstall kubestellar || true
+uv tool install .
+
+# Ensure ~/.local/bin is on PATH, then verify
+which kubectl-a2a
+kubectl plugin list | grep a2a || true
+kubectl a2a --help
+kubectl a2a list-functions
+
+# Debug kubectl plugin discovery if needed
+kubectl -v=6 a2a --help
+```
+
+- Using a locally built single-file binary (optional):
+
+```bash
+# Build the binary
+uv sync --dev
+uv pip install pyinstaller
+uv run pyinstaller --onefile --name kubectl-a2a --distpath dist --workpath build packaging/entry_kubectl_a2a.py
+
+# Put it on PATH for this shell and test
+export PATH="$PWD/dist:$PATH"
+kubectl plugin list | grep a2a || true
+kubectl a2a --help
+```
+
+Notes:
+- If your shell caches command paths, run `hash -r` (bash/zsh) after replacing the binary.
+- On Windows, ensure `dist/kubectl-a2a.exe` is on your PATH.
+- If you use `pip` rather than `pipx`, ensure the Python scripts directory is on your `PATH` (e.g., `~/.local/bin` on Linux, `~/Library/Python/<version>/bin` on macOS, or the virtual environment's `bin`).
+- For isolated installs, `pipx` is the simplest way to get `kubectl-a2a` onto your `PATH`.
+
 ## AI Provider Configuration
 
 The agent supports multiple AI providers:

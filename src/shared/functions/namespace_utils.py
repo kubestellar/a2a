@@ -21,8 +21,6 @@ class NamespaceResource:
     created: str
 
 
-
-
 @dataclass
 class NamespaceUtilsInput:
     """All parameters accepted by namespace_utils.execute in one bundle."""
@@ -91,7 +89,6 @@ class NamespaceUtilsFunction(BaseFunction):
             kubeconfig = params.kubeconfig
             remote_context = params.remote_context
             output_format = params.output_format
-
 
             # Discover clusters
             clusters = await self._discover_clusters(kubeconfig, remote_context)
@@ -249,7 +246,12 @@ class NamespaceUtilsFunction(BaseFunction):
                 # Include resources if requested
                 if include_resources:
                     resources = await self._get_namespace_resources(
-                        cluster, ns_name, resource_types, label_selector, resource_name, kubeconfig
+                        cluster,
+                        ns_name,
+                        resource_types,
+                        label_selector,
+                        resource_name,
+                        kubeconfig,
                     )
                     namespace_info["resources"] = resources
 
@@ -377,7 +379,12 @@ class NamespaceUtilsFunction(BaseFunction):
             # Get resources from each namespace
             for namespace in target_namespaces:
                 ns_resources = await self._get_namespace_resources(
-                    cluster, namespace, resource_types, label_selector, resource_name, kubeconfig
+                    cluster,
+                    namespace,
+                    resource_types,
+                    label_selector,
+                    resource_name,
+                    kubeconfig,
                 )
                 resources.extend(ns_resources)
 
@@ -440,7 +447,7 @@ class NamespaceUtilsFunction(BaseFunction):
 
                 if label_selector:
                     cmd.extend(["-l", label_selector])
-                
+
                 if resource_name:
                     cmd.append(resource_name)
                 else:

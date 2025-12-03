@@ -66,7 +66,9 @@ class DescribeResourceFunction(BaseFunction):
             # Return the result
             if result["returncode"] == 0:
                 response = {"status": "success", "description": result["stdout"]}
-                return asdict(DescribeResourceOutput(status="success", details=response))
+                return asdict(
+                    DescribeResourceOutput(status="success", details=response)
+                )
             else:
                 err = {"status": "error", "error": result["stderr"] or result["stdout"]}
                 return asdict(DescribeResourceOutput(status="error", details=err))
