@@ -34,6 +34,7 @@ dev = [
 kubestellar = "src.cli:main"
 kubestellar-mcp = "src.mcp.server:main"
 kubectl-a2a = "src.cli:main"
+kubectl-kubestellar = "src.cli:main"
 
 [build-system]
 requires = ["hatchling"]

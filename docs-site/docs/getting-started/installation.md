@@ -37,6 +37,15 @@ cd a2a
 
 # Install KubeStellar A2A with all dependencies
 uv pip install -e ".[dev]"
+
+# Install kubectl plugin alias (a2a) and optional kubestellar name
+uv tool install .
+# Verify alias
+which kubectl-a2a
+kubectl a2a --help
+# Optional: create kubestellar plugin name via symlink to the Python entrypoint
+ln -sf "$(command -v kubestellar)" ~/.local/bin/kubectl-kubestellar
+kubectl kubestellar --help
 ```
 
 ### Method 2: Using pip
@@ -52,6 +61,11 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install KubeStellar A2A
 pip install -e .
+
+# Optionally install as a kubectl plugin (alias a2a)
+python -m pip install .
+# Ensure your Python scripts dir is on PATH (e.g., ~/.local/bin)
+kubectl a2a --help
 ```
 
 ### Method 3: Development Installation
@@ -83,6 +97,10 @@ uv run kubestellar list-functions
 
 # Test basic functionality
 uv run kubestellar execute get_kubeconfig
+
+# Verify kubectl plugin
+kubectl a2a --help
+kubectl kubestellar --help || true
 ```
 
 ## CLI Commands Overview

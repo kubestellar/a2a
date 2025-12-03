@@ -36,7 +36,7 @@ uv run kubestellar agent  # Start interactive AI agent
 
 ## kubectl Plugin Installation
 
-You can install and use this project as a kubectl plugin. The plugin name is `a2a`, which kubectl discovers via an executable named `kubectl-a2a` on your `PATH`.
+You can install and use this project as a kubectl plugin. Primary plugin name is `kubestellar` (for Krew and release binaries). We also ship a Python-installed alias `a2a` for convenience. kubectl discovers plugins via executables named `kubectl-<name>` on your `PATH`.
 
 Installation options:
 
@@ -57,11 +57,18 @@ python -m pip install .
 Usage:
 
 ```bash
-# kubectl will find the plugin as long as kubectl-a2a is on PATH
+# kubectl will find the plugin as long as the executable is on PATH
+# Python-installed alias (uv/pipx/pip):
 kubectl a2a --help
 kubectl a2a list-functions
 kubectl a2a execute <function_name> -P key=value
-  kubectl a2a agent
+kubectl a2a agent
+
+# Krew or release binary name:
+kubectl kubestellar --help
+kubectl kubestellar list-functions
+kubectl kubestellar execute <function_name> -P key=value
+kubectl kubestellar agent
 ```
 
 Notes:
@@ -69,55 +76,54 @@ Notes:
 - The plugin entrypoint is provided by the executable `kubectl-a2a`, which is installed via the Python package entry points. This makes `kubectl a2a` behave the same as running the `kubestellar` CLI directly.
 - With `uv tool install`, executables are placed under `~/.local/bin` by default. Ensure it is on your `PATH`.
 
-### Install via Krew (optional)
+### Install via Krew
 
 Once a release is published, you can use the generated Krew manifest to install:
 
 ```bash
-# 1) Download kubectl-a2a.yaml from the latest release assets
-# 2) Install via krew using the manifest (it references release tarballs)
-kubectl krew install --manifest=kubectl-a2a.yaml
+# Install from the generated manifest attached to a release (name: kubestellar.yaml)
+kubectl krew install --manifest=kubestellar.yaml
 
 # Use the plugin
-kubectl a2a --help
+kubectl kubestellar --help
 ```
 
-To make installation available via the central krew-index (`kubectl krew install a2a`), submit a PR to https://github.com/kubernetes-sigs/krew-index with the `kubectl-a2a.yaml` manifest from your release.
+To make installation available via the central krew-index and install like `kubectl krew install kubestellar`, submit a PR to https://github.com/kubernetes-sigs/krew-index with the `kubestellar.yaml` manifest from your release.
 
 ### Direct install (no package manager)
 
-You can install the plugin by placing a binary named `kubectl-a2a` (or `kubectl-a2a.exe` on Windows) on your `PATH`.
+You can install the plugin by placing a binary named `kubectl-kubestellar` (or `kubectl-kubestellar.exe` on Windows) on your `PATH`. Alternatively, the Python package installs `kubectl-a2a` which kubectl also discovers.
 
-Option A — use a release binary:
+Option A — use a release binary (kubectl-kubestellar):
 
 ```bash
 # Download the tarball for your OS/arch from the latest Release
-tar -xzf kubectl-a2a-<os>-<arch>.tar.gz
-chmod +x kubectl-a2a
-mv kubectl-a2a ~/.local/bin/   # or any dir on your PATH
+tar -xzf kubectl-kubestellar-<os>-<arch>.tar.gz
+chmod +x kubectl-kubestellar
+mv kubectl-kubestellar ~/.local/bin/   # or any dir on your PATH
 
 # verify
-which kubectl-a2a
-kubectl plugin list | grep a2a || true
-kubectl a2a --help
+which kubectl-kubestellar
+kubectl plugin list | grep kubestellar || true
+kubectl kubestellar --help
 ```
 
-Option B — build locally and copy to PATH:
+Option B — build locally and copy to PATH (kubectl-kubestellar):
 
 ```bash
 uv sync --dev
 uv pip install pyinstaller
-uv run pyinstaller --onefile --name kubectl-a2a --distpath dist --workpath build packaging/entry_kubectl_a2a.py
-install -m 0755 dist/kubectl-a2a ~/.local/bin/kubectl-a2a
+uv run pyinstaller --onefile --name kubectl-kubestellar --distpath dist --workpath build packaging/entry_kubectl_a2a.py
+install -m 0755 dist/kubectl-kubestellar ~/.local/bin/kubectl-kubestellar
 ```
 
-Option C — reuse the Python entrypoint by symlink:
+Option C — reuse the Python entrypoint by symlink (alias `a2a`):
 
 ```bash
 # If you've installed the package via uv tool/pipx and have `kubestellar` on PATH,
-# create a symlink named kubectl-a2a pointing to it
-ln -sf "$(command -v kubestellar)" ~/.local/bin/kubectl-a2a
-kubectl a2a --help
+# create a symlink named kubectl-kubestellar pointing to it
+ln -sf "$(command -v kubestellar)" ~/.local/bin/kubectl-kubestellar
+kubectl kubestellar --help
 ```
 
 Windows:
@@ -127,11 +133,11 @@ Windows:
 
 ### How kubectl plugin discovery works (Kubectl Plugins)
 
-- kubectl discovers plugins by searching your `PATH` for executables named `kubectl-<name>` (per the official docs).
+- kubectl discovers plugins by searching your `PATH` for executables named `kubectl-<name>` (per the official docs). Examples: `kubectl-kubestellar`, `kubectl-a2a`.
 - When you run `kubectl <name> ...`, kubectl executes the first `kubectl-<name>` found on `PATH` and passes through the arguments.
 - List discovered plugins with `kubectl plugin list`.
 - Krew is a plugin manager that installs such binaries under its own path; `kubectl krew install <name>` makes `<name>` available as `kubectl <name>`.
-- This project provides the `kubectl-a2a` executable; once on your PATH, use `kubectl a2a ...`.
+- This project provides `kubectl-kubestellar` (for Krew and binary releases) and `kubectl-a2a` (Python entrypoint). Once on your PATH, use `kubectl kubestellar ...` or `kubectl a2a ...`.
 
 Reference: https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/
 
@@ -161,14 +167,22 @@ This repo includes an automated release workflow that builds platform-specific p
 
 Steps:
 
-- Tag a version and push the tag, e.g.: `git tag v0.1.0 && git push origin v0.1.0`
+- Create a version tag and push, e.g.: `git tag v0.1.0 && git push origin v0.1.0`
+- Or run manually via Actions → Release → Run workflow (optional tag input).
+- Or publish a GitHub Release with tag `vX.Y.Z` to trigger the workflow.
 - GitHub Actions workflow `.github/workflows/release.yml` runs and produces:
-  - Tarballs for `kubectl-a2a` on Linux amd64, macOS amd64/arm64, Windows amd64
+  - Tarballs for `kubectl-kubestellar` on Linux amd64, macOS amd64/arm64, Windows amd64
   - SHA256 checksums
-  - `kubectl-a2a.yaml` Krew manifest with versioned asset URLs and checksums
+  - `kubestellar.yaml` Krew manifest with versioned asset URLs and checksums
   - A GitHub Release containing the above assets
 
 Users can then install via Krew using the attached manifest, or you can submit it to the central krew-index.
+
+### Troubleshooting release CI
+
+- If the workflow didn’t run: ensure tag matches `v*.*.*`, Actions are enabled, and branch protections allow workflows.
+- For manual runs: use the `workflow_dispatch` entry. Optionally provide the `tag` input.
+- For Release events: make sure the release is “published” (not draft/prerelease) and has a tag like `vX.Y.Z`.
 
 ## Local Plugin Testing
 
