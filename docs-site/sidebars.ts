@@ -15,6 +15,7 @@ const sidebars: SidebarsConfig = {
         'getting-started/index',
         'getting-started/installation',
         'getting-started/quick-start',
+        'getting-started/aws-eks',
       ],
     },
     {
