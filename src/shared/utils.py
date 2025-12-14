@@ -54,7 +54,9 @@ async def run_subprocess_with_cancellation(
         raise
 
 
-async def run_shell_command_with_cancellation(cmd: List[str]) -> Dict[str, Any]:
+async def run_shell_command_with_cancellation(
+    cmd: List[str], *, input_data: Optional[bytes] = None
+) -> Dict[str, Any]:
     """
     Run a shell command with proper cancellation support.
     This is a convenience wrapper for run_subprocess_with_cancellation.
@@ -65,4 +67,4 @@ async def run_shell_command_with_cancellation(cmd: List[str]) -> Dict[str, Any]:
     Returns:
         Dictionary with returncode, stdout, and stderr
     """
-    return await run_subprocess_with_cancellation(cmd)
+    return await run_subprocess_with_cancellation(cmd, stdin_data=input_data)

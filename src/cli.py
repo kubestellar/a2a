@@ -11,20 +11,56 @@ from src.llm_providers.config import get_config_manager
 from src.llm_providers.registry import list_providers
 from src.shared.base_functions import async_to_sync, function_registry
 from src.shared.functions import initialize_functions
+from src.shared.providers import ProviderMode, detect_mode, ensure_default_providers
+
+
+def _init_mode(ctx: click.Context, mode: Optional[str], kubeconfig: Optional[str]) -> ProviderMode:
+    ctx.ensure_object(dict)
+    ensure_default_providers()
+
+    resolved_mode = (
+        ProviderMode(mode.lower())
+        if mode
+        else detect_mode(kubeconfig)
+    )
+
+    initialize_functions(resolved_mode)
+    ctx.obj["mode"] = resolved_mode
+    ctx.obj["kubeconfig"] = kubeconfig
+    return resolved_mode
+
+
+def _mode_options(command):
+    command = click.option(
+        "--mode",
+        type=click.Choice([mode.value for mode in ProviderMode], case_sensitive=False),
+        help="Target backend mode (kubestellar or kubernetes). Defaults to auto-detect.",
+    )(command)
+    command = click.option(
+        "--kubeconfig",
+        type=click.Path(exists=False, dir_okay=False, resolve_path=True),
+        help="Path to kubeconfig for mode detection and command execution.",
+    )(command)
+    return command
 
 
 @click.group()
 @click.pass_context
 def cli(ctx):
     """KubeStellar Agent - Execute functions from command line."""
-    # Initialize functions when CLI starts
-    initialize_functions()
-    ctx.ensure_object(dict)
+    if not ctx.obj:
+        resolved_mode = _init_mode(ctx, None, None)
+        click.echo(f"* Using mode: {resolved_mode.value}", err=True)
 
 
 @cli.command()
-def list_functions():
+@_mode_options
+@click.pass_context
+def list_functions(ctx, mode: Optional[str], kubeconfig: Optional[str]):
     """List all available functions."""
+    resolved_mode = _init_mode(ctx, mode, kubeconfig)
+    if mode or kubeconfig:
+        click.echo(f"* Using mode: {resolved_mode.value}", err=True)
     functions = function_registry.list_all()
     if not functions:
         click.echo("No functions registered.")
@@ -46,11 +82,24 @@ def list_functions():
 
 
 @cli.command()
+@_mode_options
 @click.argument("function_name")
 @click.option("--params", "-p", help="JSON string of parameters")
 @click.option("--param", "-P", multiple=True, help="Key=value parameter pairs")
-def execute(function_name: str, params: Optional[str], param: tuple):
+@click.pass_context
+def execute(
+    ctx: click.Context,
+    mode: Optional[str],
+    kubeconfig: Optional[str],
+    function_name: str,
+    params: Optional[str],
+    param: tuple,
+):
     """Execute a specific function."""
+    resolved_mode = _init_mode(ctx, mode, kubeconfig)
+    if mode or kubeconfig:
+        click.echo(f"* Using mode: {resolved_mode.value}", err=True)
+
     function = function_registry.get(function_name)
     if not function:
         click.echo(f"Error: Function '{function_name}' not found.", err=True)
@@ -95,9 +144,20 @@ def execute(function_name: str, params: Optional[str], param: tuple):
 
 
 @cli.command()
+@_mode_options
 @click.argument("function_name")
-def describe(function_name: str):
+@click.pass_context
+def describe(
+    ctx: click.Context,
+    mode: Optional[str],
+    kubeconfig: Optional[str],
+    function_name: str,
+):
     """Get detailed information about a function."""
+    resolved_mode = _init_mode(ctx, mode, kubeconfig)
+    if mode or kubeconfig:
+        click.echo(f"* Using mode: {resolved_mode.value}", err=True)
+
     function = function_registry.get(function_name)
     if not function:
         click.echo(f"Error: Function '{function_name}' not found.", err=True)
