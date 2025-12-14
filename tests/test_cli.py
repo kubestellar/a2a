@@ -14,6 +14,15 @@ def runner():
     return CliRunner()
 
 
+def _load_json_from_output(text: str) -> dict:
+    """Extract the JSON payload from CLI output that may include log lines."""
+    lines = text.splitlines()
+    for idx, line in enumerate(lines):
+        if line.strip().startswith("{"):
+            return json.loads("\n".join(lines[idx:]))
+    raise AssertionError(f"No JSON payload found in output: {text!r}")
+
+
 def test_cli_help(runner):
     """Test CLI help command."""
     result = runner.invoke(cli, ["--help"])
@@ -54,7 +63,7 @@ def test_execute_function_with_params(runner):
     )
     assert result.exit_code == 0
     # Should get an error response but in valid JSON format
-    output = json.loads(result.output)
+    output = _load_json_from_output(result.output)
     assert "error" in output or "kubeconfig_path" in output
 
 
@@ -65,7 +74,7 @@ def test_execute_function_with_json_params(runner):
     )
     result = runner.invoke(cli, ["execute", "get_kubeconfig", "--params", params])
     assert result.exit_code == 0
-    output = json.loads(result.output)
+    output = _load_json_from_output(result.output)
     assert isinstance(output, dict)
 
 
@@ -94,3 +103,37 @@ def test_execute_invalid_json_params(runner):
     )
     assert result.exit_code == 0
     assert "Error: Invalid JSON parameters" in result.output
+
+
+def test_execute_with_mode_override(runner):
+    """Mode flag should reinitialize providers and log selection."""
+    result = runner.invoke(
+        cli,
+        [
+            "execute",
+            "--mode",
+            "kubestellar",
+            "get_kubeconfig",
+            "--param",
+            "kubeconfig_path=/nonexistent/path",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "* Using mode: kubestellar" in result.output
+    _load_json_from_output(result.output)
+
+
+def test_describe_with_kubeconfig_override(runner):
+    """Kubeconfig flag should emit mode information to stderr."""
+    result = runner.invoke(
+        cli,
+        [
+            "describe",
+            "--kubeconfig",
+            "/tmp/nonexistent-kubeconfig",
+            "get_kubeconfig",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "* Using mode:" in result.output
+    assert "Function: get_kubeconfig" in result.output

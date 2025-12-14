@@ -64,6 +64,12 @@ class FunctionRegistry:
     def __init__(self):
         self._functions: Dict[str, BaseFunction] = {}
 
+    def reset(self) -> None:
+        """Clear all registered functions and restore defaults."""
+        self._functions = {}
+        # Ensure core plan function is always available after reset
+        self.register(CreatePlanFunction())
+
     def register(self, function: BaseFunction) -> None:
         """Register a new function."""
         self._functions[function.name] = function
