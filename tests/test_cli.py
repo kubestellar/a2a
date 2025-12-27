@@ -6,6 +6,7 @@ import pytest
 from click.testing import CliRunner
 
 from src.cli import cli
+from src.shared.task_queue import TaskPriority, task_executor
 
 
 @pytest.fixture
@@ -137,3 +138,50 @@ def test_describe_with_kubeconfig_override(runner):
     assert result.exit_code == 0
     assert "* Using mode:" in result.output
     assert "Function: get_kubeconfig" in result.output
+
+
+def test_execute_uses_default_priority(monkeypatch, runner):
+    """CLI execute should default to medium priority when not provided."""
+
+    captured = {}
+
+    async def fake_run_function(function, params, *, priority):
+        captured["priority"] = priority
+        return {"status": "ok"}
+
+    monkeypatch.setattr(task_executor, "run_function", fake_run_function)
+
+    result = runner.invoke(
+        cli,
+        ["execute", "get_kubeconfig", "--param", "kubeconfig_path=/tmp/foo"],
+    )
+
+    assert result.exit_code == 0
+    assert captured["priority"] is TaskPriority.MEDIUM
+
+
+def test_execute_respects_priority_flag(monkeypatch, runner):
+    """CLI execute should pass through the explicit priority."""
+
+    captured = {}
+
+    async def fake_run_function(function, params, *, priority):
+        captured["priority"] = priority
+        return {"status": "ok"}
+
+    monkeypatch.setattr(task_executor, "run_function", fake_run_function)
+
+    result = runner.invoke(
+        cli,
+        [
+            "execute",
+            "--priority",
+            "high",
+            "get_kubeconfig",
+            "--param",
+            "kubeconfig_path=/tmp/foo",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["priority"] is TaskPriority.HIGH

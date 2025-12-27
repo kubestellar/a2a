@@ -12,6 +12,7 @@ from src.llm_providers.registry import list_providers
 from src.shared.base_functions import async_to_sync, function_registry
 from src.shared.functions import initialize_functions
 from src.shared.providers import ProviderMode, detect_mode, ensure_default_providers
+from src.shared.task_queue import TaskPriority, task_executor
 
 
 def _init_mode(ctx: click.Context, mode: Optional[str], kubeconfig: Optional[str]) -> ProviderMode:
@@ -86,6 +87,11 @@ def list_functions(ctx, mode: Optional[str], kubeconfig: Optional[str]):
 @click.argument("function_name")
 @click.option("--params", "-p", help="JSON string of parameters")
 @click.option("--param", "-P", multiple=True, help="Key=value parameter pairs")
+@click.option(
+    "--priority",
+    type=click.Choice([p.value for p in TaskPriority], case_sensitive=False),
+    help="Execution priority for the task queue (default: medium).",
+)
 @click.pass_context
 def execute(
     ctx: click.Context,
@@ -94,6 +100,7 @@ def execute(
     function_name: str,
     params: Optional[str],
     param: tuple,
+    priority: Optional[str],
 ):
     """Execute a specific function."""
     resolved_mode = _init_mode(ctx, mode, kubeconfig)
@@ -130,13 +137,18 @@ def execute(
         except json.JSONDecodeError:
             kwargs[key] = value
 
-    # Execute function
+    # Resolve priority
     try:
-        # Convert async function to sync for CLI
-        if asyncio.iscoroutinefunction(function.execute):
-            result = async_to_sync(function.execute)(**kwargs)
-        else:
-            result = function.execute(**kwargs)
+        priority_level = TaskPriority.from_string(priority)
+    except ValueError as exc:
+        click.echo(f"Error: {exc}", err=True)
+        return
+
+    # Execute function via priority-aware executor
+    try:
+        result = async_to_sync(task_executor.run_function)(
+            function, kwargs, priority=priority_level
+        )
 
         click.echo(json.dumps(result, indent=2))
     except Exception as e:

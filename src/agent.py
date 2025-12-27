@@ -26,6 +26,7 @@ from src.llm_providers import (
 from src.llm_providers.config import get_config_manager
 from src.shared.base_functions import function_registry
 from src.shared.functions import initialize_functions
+from src.shared.task_queue import TaskPriority, task_executor
 
 T = TypeVar("T")
 
@@ -242,7 +243,11 @@ class AgentChat:
         )
 
     async def _execute_function(
-        self, function_name: str, args: Dict[str, Any]
+        self,
+        function_name: str,
+        args: Dict[str, Any],
+        *,
+        priority: TaskPriority = TaskPriority.MEDIUM,
     ) -> tuple[str, float]:
         """Execute a KubeStellar function."""
         function = function_registry.get(function_name)
@@ -251,7 +256,9 @@ class AgentChat:
 
         try:
             start = time.perf_counter()
-            result_dict = await function.execute(**args)
+            result_dict = await task_executor.run_function(
+                function, args, priority=priority
+            )
             elapsed = time.perf_counter() - start
             return json.dumps(result_dict, indent=2, default=_json_serializer), elapsed
         except Exception as e:
