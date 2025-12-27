@@ -1,6 +1,10 @@
 """Function implementations."""
 
-from src.shared.base_functions import function_registry
+from typing import Dict, List, Type
+
+from src.shared.base_functions import BaseFunction, function_registry
+from src.shared.providers import ProviderMode
+
 from src.shared.functions.binding_policy_management import BindingPolicyManagement
 from src.shared.functions.check_cluster_upgrades import CheckClusterUpgradesFunction
 from src.shared.functions.cluster_management import ClusterManagementFunction
@@ -20,42 +24,46 @@ from src.shared.functions.multicluster_logs import MultiClusterLogsFunction
 from src.shared.functions.namespace_utils import NamespaceUtilsFunction
 
 
-def initialize_functions():
-    """Initialize and register all available functions."""
-    # Register kubeconfig function
-    function_registry.register(KubeconfigFunction())
+def _function_sets() -> Dict[ProviderMode, List[Type[BaseFunction]]]:
+    base: List[Type[BaseFunction]] = [
+        KubeconfigFunction,
+        FetchManifestFunction,
+        DescribeResourceFunction,
+        EditResourceFunction,
+        NamespaceUtilsFunction,
+        GVRCDiscoveryFunction,
+        CheckClusterUpgradesFunction,
+        HelmRepoFunction,
+        HelmListFunction,
+        HelmInstallFunction,
+        HelmDeployFunction,
+    ]
 
-    # Register enhanced KubeStellar management function
-    function_registry.register(KubeStellarManagementFunction())
+    kubernetes_extras: List[Type[BaseFunction]] = [
+        DeployToFunction,
+        ClusterManagementFunction,
+    ]
 
-    # Register KubeStellar multi-cluster functions
-    function_registry.register(MultiClusterCreateFunction())
-    function_registry.register(MultiClusterLogsFunction())
-    function_registry.register(DeployToFunction())
+    kubestellar = (
+        base
+        + kubernetes_extras
+        + [
+            KubeStellarManagementFunction,
+            MultiClusterCreateFunction,
+            MultiClusterLogsFunction,
+            BindingPolicyManagement,
+        ]
+    )
 
-    # Register cluster management function
-    function_registry.register(ClusterManagementFunction())
+    return {
+        ProviderMode.KUBERNETES: base + kubernetes_extras,
+        ProviderMode.KUBESTELLAR: kubestellar,
+    }
 
-    # Register remote manifest fetch helper
-    function_registry.register(FetchManifestFunction())
 
-    # Register Helm functions
-    function_registry.register(HelmRepoFunction())
-    function_registry.register(HelmListFunction())
-    function_registry.register(HelmInstallFunction())
-    function_registry.register(EditResourceFunction())
-    function_registry.register(DescribeResourceFunction())
+def initialize_functions(mode: ProviderMode) -> None:
+    """Initialize and register functions based on provider mode."""
 
-    function_registry.register(BindingPolicyManagement())
-
-    # Register Helm deployment function
-    function_registry.register(HelmDeployFunction())
-
-    # Register GVRC and namespace utilities
-    function_registry.register(GVRCDiscoveryFunction())
-    function_registry.register(NamespaceUtilsFunction())
-
-    # Register cluster upgrade check function
-    function_registry.register(CheckClusterUpgradesFunction())
-
-    # Add more function registrations here as they are created
+    function_registry.reset()
+    for func_cls in _function_sets()[mode]:
+        function_registry.register(func_cls())

@@ -11,6 +11,7 @@ from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from src.shared.base_functions import function_registry
 from src.shared.functions import initialize_functions
+from src.shared.task_queue import TaskPriority, task_executor
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -26,7 +27,11 @@ async def handle_call_tool(
         raise ValueError(f"Unknown function: {name}")
 
     try:
-        result = await function.execute(**(arguments or {}))
+        result = await task_executor.run_function(
+            function,
+            arguments or {},
+            priority=TaskPriority.MEDIUM,
+        )
         return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
     except Exception as e:
         logger.error(f"Error executing function {name}: {e}")
