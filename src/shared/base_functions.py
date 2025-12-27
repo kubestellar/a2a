@@ -21,6 +21,30 @@ class BaseFunction(ABC):
     @abstractmethod
     def get_schema(self) -> Dict[str, Any]:
         """Return JSON schema for function parameters."""
+
+    def validate_inputs(self, inputs: Dict[str, Any]) -> None:
+        """Validate incoming inputs against the declared schema.
+
+        Rejects missing required fields or explicit ``None`` values unless the
+        schema property declares ``nullable: True``.
+        """
+
+        schema = self.get_schema() or {}
+        properties: Dict[str, Dict[str, Any]] = schema.get("properties", {}) or {}
+        required_fields = set(schema.get("required", []))
+
+        for field in required_fields:
+            if field not in inputs or inputs[field] is None:
+                raise ValueError(f"Parameter '{field}' is required and cannot be null")
+
+        for field, value in inputs.items():
+            if value is None:
+                property_schema = properties.get(field)
+                if property_schema is None:
+                    continue
+                if property_schema.get("nullable") is True:
+                    continue
+                raise ValueError(f"Parameter '{field}' cannot be null")
         pass
 
 

@@ -251,9 +251,12 @@ class AgentChat:
 
         try:
             start = time.perf_counter()
+            function.validate_inputs(args)
             result_dict = await function.execute(**args)
             elapsed = time.perf_counter() - start
             return json.dumps(result_dict, indent=2, default=_json_serializer), elapsed
+        except ValueError as err:
+            return f"Validation error: {err}", 0.0
         except Exception as e:
             return f"Error executing {function_name}: {str(e)}", 0.0
 

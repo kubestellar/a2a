@@ -55,6 +55,29 @@ class SyncMockFunction(BaseFunction):
         }
 
 
+class RequiredMockFunction(BaseFunction):
+    """Function with required and nullable parameters."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            name="required_mock_function",
+            description="Function exercising validation logic",
+        )
+
+    async def execute(self, **kwargs: Any) -> Dict[str, Any]:
+        return kwargs
+
+    def get_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "required_field": {"type": "string"},
+                "nullable_field": {"type": "string", "nullable": True},
+            },
+            "required": ["required_field"],
+        }
+
+
 def test_base_function_initialization():
     """Test BaseFunction initialization."""
     func = MockFunction()
@@ -168,3 +191,23 @@ def test_function_registry_overwrite():
     # Verify it's the new function
     result = async_to_sync(registry.get("mock_function").execute)()
     assert result == {"result": "different"}
+
+
+def test_validate_inputs_enforces_required_fields() -> None:
+    func = RequiredMockFunction()
+
+    with pytest.raises(ValueError, match="required_field"):
+        func.validate_inputs({})
+
+
+def test_validate_inputs_rejects_null_values() -> None:
+    func = RequiredMockFunction()
+
+    with pytest.raises(ValueError, match="required_field"):
+        func.validate_inputs({"required_field": None})
+
+
+def test_validate_inputs_allows_nullable_fields() -> None:
+    func = RequiredMockFunction()
+
+    func.validate_inputs({"required_field": "ok", "nullable_field": None})

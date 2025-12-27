@@ -26,8 +26,13 @@ async def handle_call_tool(
         raise ValueError(f"Unknown function: {name}")
 
     try:
-        result = await function.execute(**(arguments or {}))
+        payload = arguments or {}
+        function.validate_inputs(payload)
+        result = await function.execute(**payload)
         return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
+    except ValueError as err:
+        logger.error(f"Validation error for function {name}: {err}")
+        return [types.TextContent(type="text", text=f"Validation error: {err}")]
     except Exception as e:
         logger.error(f"Error executing function {name}: {e}")
         return [types.TextContent(type="text", text=f"Error: {str(e)}")]
