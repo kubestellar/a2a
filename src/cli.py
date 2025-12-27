@@ -10,6 +10,14 @@ from src.agent import AgentChat
 from src.llm_providers.config import get_config_manager
 from src.llm_providers.registry import list_providers
 from src.shared.base_functions import async_to_sync, function_registry
+from src.shared.debug import (
+    configure_root,
+    disable as disable_debug,
+    enable as enable_debug,
+    is_enabled as debug_is_enabled,
+    log_request,
+    log_response,
+)
 from src.shared.functions import initialize_functions
 from src.shared.providers import ProviderMode, detect_mode, ensure_default_providers
 
@@ -48,6 +56,7 @@ def _mode_options(command):
 @click.pass_context
 def cli(ctx):
     """KubeStellar Agent - Execute functions from command line."""
+    configure_root()
     if not ctx.obj:
         resolved_mode = _init_mode(ctx, None, None)
         click.echo(f"* Using mode: {resolved_mode.value}", err=True)
@@ -86,6 +95,13 @@ def list_functions(ctx, mode: Optional[str], kubeconfig: Optional[str]):
 @click.argument("function_name")
 @click.option("--params", "-p", help="JSON string of parameters")
 @click.option("--param", "-P", multiple=True, help="Key=value parameter pairs")
+@click.option(
+    "--debug",
+    "debug_flag",
+    flag_value=True,
+    default=False,
+    help="Temporarily enable verbose debug logging for this invocation.",
+)
 @click.pass_context
 def execute(
     ctx: click.Context,
@@ -94,6 +110,7 @@ def execute(
     function_name: str,
     params: Optional[str],
     param: tuple,
+    debug_flag: bool,
 ):
     """Execute a specific function."""
     resolved_mode = _init_mode(ctx, mode, kubeconfig)
@@ -130,7 +147,18 @@ def execute(
         except json.JSONDecodeError:
             kwargs[key] = value
 
-    # Execute function
+    # Execute function with debug logging
+    if debug_flag:
+        enable_debug()
+    log_request(
+        "cli.execute",
+        {
+            "function": function_name,
+            "params": kwargs,
+            "mode": resolved_mode.value,
+            "kubeconfig": kubeconfig or "default",
+        },
+    )
     try:
         # Convert async function to sync for CLI
         if asyncio.iscoroutinefunction(function.execute):
@@ -138,8 +166,24 @@ def execute(
         else:
             result = function.execute(**kwargs)
 
+        log_response(
+            "cli.execute",
+            {
+                "function": function_name,
+                "result": result,
+                "mode": resolved_mode.value,
+            },
+        )
         click.echo(json.dumps(result, indent=2))
     except Exception as e:
+        log_response(
+            "cli.execute",
+            {
+                "function": function_name,
+                "error": str(e),
+                "mode": resolved_mode.value,
+            },
+        )
         click.echo(f"Error executing function: {e}", err=True)
 
 
@@ -243,6 +287,23 @@ def show_config():
 
     click.echo("Current configuration:")
     click.echo(json.dumps(config, indent=2))
+
+
+@cli.command("debug")
+@click.option("--enable", "flag", flag_value="enable", help="Enable verbose debug mode")
+@click.option("--disable", "flag", flag_value="disable", help="Disable verbose debug mode")
+def debug(flag: Optional[str]):
+    """Toggle verbose debug logging for requests and responses."""
+
+    if flag == "enable":
+        enable_debug()
+        click.echo("Verbose debug logging enabled")
+    elif flag == "disable":
+        disable_debug()
+        click.echo("Verbose debug logging disabled")
+    else:
+        state = "enabled" if debug_is_enabled() else "disabled"
+        click.echo(f"Verbose debug logging is currently {state}")
 
 
 @cli.command("providers")
