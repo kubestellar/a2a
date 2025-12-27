@@ -83,6 +83,8 @@ def execute(function_name: str, params: Optional[str], param: tuple):
 
     # Execute function
     try:
+        function.validate_inputs(kwargs)
+
         # Convert async function to sync for CLI
         if asyncio.iscoroutinefunction(function.execute):
             result = async_to_sync(function.execute)(**kwargs)
@@ -90,6 +92,8 @@ def execute(function_name: str, params: Optional[str], param: tuple):
             result = function.execute(**kwargs)
 
         click.echo(json.dumps(result, indent=2))
+    except ValueError as e:
+        click.echo(f"Validation error: {e}", err=True)
     except Exception as e:
         click.echo(f"Error executing function: {e}", err=True)
 
