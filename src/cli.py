@@ -13,7 +13,9 @@ from src.shared.base_functions import async_to_sync, function_registry
 from src.shared.functions import initialize_functions
 
 
-@click.group(help="Interact with KubeStellar automation functions and agent mode.")
+@click.group(
+    help="KubeStellar Agent - Interact with automation functions and agent mode."
+)
 @click.pass_context
 def cli(ctx: click.Context) -> None:
     """Root command for the KubeStellar A2A CLI."""
