@@ -13,18 +13,18 @@ from src.shared.base_functions import async_to_sync, function_registry
 from src.shared.functions import initialize_functions
 
 
-@click.group()
+@click.group(help="Interact with KubeStellar automation functions and agent mode.")
 @click.pass_context
-def cli(ctx):
-    """KubeStellar Agent - Execute functions from command line."""
+def cli(ctx: click.Context) -> None:
+    """Root command for the KubeStellar A2A CLI."""
     # Initialize functions when CLI starts
     initialize_functions()
     ctx.ensure_object(dict)
 
 
-@cli.command()
-def list_functions():
-    """List all available functions."""
+@cli.command(help="List available functions and their parameters.")
+def list_functions() -> None:
+    """Display the function catalog with parameter descriptions."""
     functions = function_registry.list_all()
     if not functions:
         click.echo("No functions registered.")
@@ -45,12 +45,21 @@ def list_functions():
                     click.echo(f"      {details['description']}")
 
 
-@cli.command()
+@cli.command(help="Execute a function with either JSON input or key=value pairs.")
 @click.argument("function_name")
-@click.option("--params", "-p", help="JSON string of parameters")
-@click.option("--param", "-P", multiple=True, help="Key=value parameter pairs")
-def execute(function_name: str, params: Optional[str], param: tuple):
-    """Execute a specific function."""
+@click.option(
+    "--params",
+    "-p",
+    help="JSON body, e.g. -p '{\"chart\":\"nginx\",\"version\":\"1.2.0\"}'",
+)
+@click.option(
+    "--param",
+    "-P",
+    multiple=True,
+    help="Add key=value parameters (repeat for multiple values).",
+)
+def execute(function_name: str, params: Optional[str], param: tuple[str, ...]) -> None:
+    """Invoke an automation function."""
     function = function_registry.get(function_name)
     if not function:
         click.echo(f"Error: Function '{function_name}' not found.", err=True)
@@ -59,6 +68,13 @@ def execute(function_name: str, params: Optional[str], param: tuple):
 
     # Parse parameters
     kwargs: Dict[str, Any] = {}
+
+    if params and param:
+        click.echo(
+            "Error: Provide parameters either via --params JSON or -P key=value, not both.",
+            err=True,
+        )
+        return
 
     if params:
         try:
@@ -98,10 +114,10 @@ def execute(function_name: str, params: Optional[str], param: tuple):
         click.echo(f"Error executing function: {e}", err=True)
 
 
-@cli.command()
+@cli.command(help="Show the JSON schema and metadata for a function.")
 @click.argument("function_name")
-def describe(function_name: str):
-    """Get detailed information about a function."""
+def describe(function_name: str) -> None:
+    """Display detailed information about a function."""
     function = function_registry.get(function_name)
     if not function:
         click.echo(f"Error: Function '{function_name}' not found.", err=True)
@@ -113,9 +129,13 @@ def describe(function_name: str):
     click.echo(json.dumps(function.get_schema(), indent=2))
 
 
-@cli.command()
-@click.option("--provider", "-p", help="LLM provider to use (default: from config)")
-def agent(provider: Optional[str]):
+@cli.command(help="Launch the interactive agent for conversational control.")
+@click.option(
+    "--provider",
+    "-p",
+    help="Override the configured default provider (e.g. --provider openai)",
+)
+def agent(provider: Optional[str]) -> None:
     """Start interactive agent mode with LLM assistance."""
     try:
         chat = AgentChat(provider_name=provider)
@@ -126,32 +146,31 @@ def agent(provider: Optional[str]):
         click.echo(f"Error: {e}", err=True)
 
 
-@cli.group()
-def config():
-    """Manage configuration and API keys."""
-    pass
+@cli.group(help="Manage stored API keys and preferred provider settings.")
+def config() -> None:
+    """Configuration commands."""
 
 
-@config.command("set-key")
+@config.command("set-key", help="Store an API key for the given provider.")
 @click.argument("provider")
 @click.argument("api_key")
-def set_api_key(provider: str, api_key: str):
-    """Set API key for a provider."""
+def set_api_key(provider: str, api_key: str) -> None:
+    """Persist an API key for a provider."""
     config_manager = get_config_manager()
     config_manager.set_api_key(provider, api_key)
 
 
-@config.command("remove-key")
+@config.command("remove-key", help="Delete the stored API key for a provider.")
 @click.argument("provider")
-def remove_api_key(provider: str):
-    """Remove API key for a provider."""
+def remove_api_key(provider: str) -> None:
+    """Remove a provider's stored API key."""
     config_manager = get_config_manager()
     config_manager.remove_api_key(provider)
 
 
-@config.command("list-keys")
-def list_api_keys():
-    """List providers with stored API keys."""
+@config.command("list-keys", help="List which providers have API keys configured.")
+def list_api_keys() -> None:
+    """Show providers with stored API keys (without revealing secrets)."""
     config_manager = get_config_manager()
     keys = config_manager.list_api_keys()
 
@@ -167,7 +186,7 @@ def list_api_keys():
 
 @config.command("set-default")
 @click.argument("provider")
-def set_default_provider(provider: str):
+def set_default_provider(provider: str) -> None:
     """Set default LLM provider."""
     available = list_providers()
     if provider not in available:
@@ -180,7 +199,7 @@ def set_default_provider(provider: str):
 
 
 @config.command("show")
-def show_config():
+def show_config() -> None:
     """Show current configuration."""
     config_manager = get_config_manager()
     config = config_manager.load_config()
@@ -189,9 +208,9 @@ def show_config():
     click.echo(json.dumps(config, indent=2))
 
 
-@cli.command("providers")
-def list_providers_cmd():
-    """List available LLM providers."""
+@cli.command("providers", help="List installed LLM providers and mark the default.")
+def list_providers_cmd() -> None:
+    """Display known LLM providers and highlight the default selection."""
     providers = list_providers()
     config_manager = get_config_manager()
     default_provider = config_manager.get_default_provider()
