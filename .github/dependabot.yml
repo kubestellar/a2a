@@ -1,43 +1,21 @@
 version: 2
 updates:
-  - package-ecosystem: "pip"
+  - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 10
-    reviewers:
-      - MAVRICK-1
-      - clubanderson
-      - onkar717
-      - btwshivam
-    assignees:
-      - MAVRICK-1
-      - clubanderson
-      - onkar717
-      - btwshivam
     commit-message:
       prefix: "deps"
-      include: "scope"
     labels:
       - "dependencies"
-      - "python"
+      - "go"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "MAVRICK-1"
-    assignees:
-      - "MAVRICK-1"
     commit-message:
       prefix: "ci"
-      include: "scope"
     labels:
       - "dependencies"
-      - "github-actions"
+      - "ci"
