@@ -1,3 +1,4 @@
+# KubeStellar A2A - Agent-to-Agent communication library
 [project]
 name = "kubestellar"
 version = "0.1.0"
