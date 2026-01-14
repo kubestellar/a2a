@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/github/license/kubestellar/a2a.svg)](./LICENSE)
 
-📚 **[View Full Documentation](https://kubestellar.github.io/a2a/)**
+📚 **[View Full Documentation](https://kubestellar.io/docs/a2a)**
 
 ```
 ╭─────────────────────────────────────────────────────────────────────────────────────────────╮
@@ -286,7 +286,7 @@ Add to MCP server (`~/Library/Application Support/Claude/claude_desktop_config.j
 
 ## Documentation
 
-📖 **Complete Documentation:** https://kubestellar.github.io/a2a/
+📖 **Complete Documentation:** https://kubestellar.io/docs/a2a
 
 ## License
 
