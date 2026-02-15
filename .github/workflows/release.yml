@@ -194,3 +194,17 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger docs version branch
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.WORKFLOW_SYNC_TOKEN }}
+          repository: kubestellar/docs
+          event-type: create-version-branch
+          client-payload: |
+            {
+              "project": "a2a",
+              "version": "${{ steps.tag.outputs.tag }}",
+              "source_repo": "${{ github.repository }}",
+              "source_branch": "main"
+            }
