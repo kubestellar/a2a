@@ -13,38 +13,83 @@ from src.shared.base_functions import async_to_sync, function_registry
 from src.shared.functions import initialize_functions
 
 
+def _init_ctx(ctx: click.Context, quiet: bool, verbose: bool) -> None:
+    ctx.ensure_object(dict)
+    ctx.obj["quiet"] = quiet
+    ctx.obj["verbose"] = verbose
+
+
+def _echo(ctx: click.Context, message: str, *, err: bool = False) -> None:
+    if not ctx.obj.get("quiet", False):
+        click.echo(message, err=err)
+
+
+def _echo_verbose(ctx: click.Context, message: str) -> None:
+    if ctx.obj.get("verbose", False):
+        click.echo(message)
+
+
+def _is_quiet(ctx: click.Context) -> bool:
+    return ctx.obj.get("quiet", False)
+
+
+def _is_verbose(ctx: click.Context) -> bool:
+    return ctx.obj.get("verbose", False)
+
+
 @click.group(
     help="KubeStellar Agent - Interact with automation functions and agent mode."
 )
+@click.option(
+    "--quiet",
+    "-q",
+    is_flag=True,
+    help="Suppress informational output; only critical results and errors are shown.",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Enable verbose logging for command execution details.",
+)
 @click.pass_context
-def cli(ctx: click.Context) -> None:
+def cli(ctx: click.Context, quiet: bool, verbose: bool) -> None:
     """Root command for the KubeStellar A2A CLI."""
+    if quiet and verbose:
+        raise click.UsageError("Cannot use --quiet and --verbose together.")
+
     # Initialize functions when CLI starts
     initialize_functions()
-    ctx.ensure_object(dict)
+    _init_ctx(ctx, quiet, verbose)
 
 
 @cli.command(help="List available functions and their parameters.")
-def list_functions() -> None:
+@click.pass_context
+def list_functions(ctx: click.Context) -> None:
     """Display the function catalog with parameter descriptions."""
     functions = function_registry.list_all()
     if not functions:
-        click.echo("No functions registered.")
+        _echo(ctx, "No functions registered.")
         return
 
-    click.echo("Available functions:")
+    if _is_quiet(ctx):
+        for func in functions:
+            click.echo(func.name)
+        return
+
+    _echo(ctx, "Available functions:")
     for func in functions:
-        click.echo(f"\n- {func.name}")
-        click.echo(f"  Description: {func.description}")
+        _echo(ctx, f"\n- {func.name}")
+        _echo(ctx, f"  Description: {func.description}")
         schema = func.get_schema()
         if schema.get("properties"):
-            click.echo("  Parameters:")
+            _echo(ctx, "  Parameters:")
             for param, details in schema["properties"].items():
                 required = param in schema.get("required", [])
                 req_str = " (required)" if required else " (optional)"
-                click.echo(f"    - {param}: {details.get('type', 'any')}{req_str}")
+                _echo(ctx, f"    - {param}: {details.get('type', 'any')}{req_str}")
                 if "description" in details:
-                    click.echo(f"      {details['description']}")
+                    _echo(ctx, f"      {details['description']}")
 
 
 @cli.command(help="Execute a function with either JSON input or key=value pairs.")
@@ -60,7 +105,13 @@ def list_functions() -> None:
     multiple=True,
     help="Add key=value parameters (repeat for multiple values).",
 )
-def execute(function_name: str, params: Optional[str], param: tuple[str, ...]) -> None:
+@click.pass_context
+def execute(
+    ctx: click.Context,
+    function_name: str,
+    params: Optional[str],
+    param: tuple[str, ...],
+) -> None:
     """Invoke an automation function."""
     function = function_registry.get(function_name)
     if not function:
@@ -70,6 +121,12 @@ def execute(function_name: str, params: Optional[str], param: tuple[str, ...]) -
 
     # Parse parameters
     kwargs: Dict[str, Any] = {}
+
+    if _is_verbose(ctx):
+        _echo_verbose(
+            ctx,
+            f"Raw parameters received: params={params!r}, repeats={param!r}",
+        )
 
     if params and param:
         click.echo(
@@ -99,15 +156,24 @@ def execute(function_name: str, params: Optional[str], param: tuple[str, ...]) -
         except json.JSONDecodeError:
             kwargs[key] = value
 
+    if _is_verbose(ctx):
+        _echo_verbose(ctx, f"Parsed parameters: {kwargs!r}")
+
     # Execute function
     try:
         function.validate_inputs(kwargs)
+
+        if _is_verbose(ctx):
+            _echo_verbose(ctx, "Inputs validated successfully.")
 
         # Convert async function to sync for CLI
         if asyncio.iscoroutinefunction(function.execute):
             result = async_to_sync(function.execute)(**kwargs)
         else:
             result = function.execute(**kwargs)
+
+        if _is_verbose(ctx):
+            _echo_verbose(ctx, f"Execution result: {result!r}")
 
         click.echo(json.dumps(result, indent=2))
     except ValueError as e:
