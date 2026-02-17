@@ -1,4 +1,4 @@
-# KubeStellar A2A
+# KubeStellar A2A / MCP  
 
 [![CI](https://github.com/kubestellar/a2a/actions/workflows/ci.yml/badge.svg)](https://github.com/kubestellar/a2a/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
